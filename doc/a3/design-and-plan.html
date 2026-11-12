@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chitti assistant: Assignment 3 system design and development plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F7F9FB;--sheet:#FFFFFF;--ink:#14213D;--steel:#4A5A73;--rule:#D5DCE5;--local:#0E7C7B;--local-bg:#E3F3F2;--cloud:#3D4FA8;--cloud-bg:#E8EBF8;--held:#A23B5C;--held-bg:#F8E7ED;--warn:#8A5A00;--warn-bg:#FBF0DA;--code-bg:#EEF2F6;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0F1626;--sheet:#16203A;--ink:#E6ECF5;--steel:#A7B4C8;--rule:#2C3A57;--local:#5CC9C6;--local-bg:#123433;--cloud:#9AA8F0;--cloud-bg:#1D2550;--held:#EE8FAD;--held-bg:#3A1A27;--warn:#F0C26A;--warn-bg:#3A2C10;--code-bg:#1C2843;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#0F1626;--sheet:#16203A;--ink:#E6ECF5;--steel:#A7B4C8;--rule:#2C3A57;--local:#5CC9C6;--local-bg:#123433;--cloud:#9AA8F0;--cloud-bg:#1D2550;--held:#EE8FAD;--held-bg:#3A1A27;--warn:#F0C26A;--warn-bg:#3A2C10;--code-bg:#1C2843;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.88em;background:var(--code-bg);padding:.08em .35em;border-radius:4px}
+.wrap{display:grid;grid-template-columns:230px minmax(0,1fr);gap:48px;max-width:1240px;margin:0 auto;padding:40px 28px 80px}
+nav{position:sticky;top:24px;align-self:start;font-size:14px;line-height:1.5}
+nav p{margin:18px 0 6px;font-weight:600;color:var(--steel)}
+nav a{display:block;color:var(--ink);text-decoration:none;padding:3px 0 3px 10px;border-left:2px solid var(--rule)}
+nav a:hover,nav a:focus-visible{border-left-color:var(--cloud);color:var(--cloud)}
+main{min-width:0}
+header.top{border-bottom:3px solid var(--ink);padding-bottom:22px;margin-bottom:8px}
+header.top h1{font-size:clamp(28px,4vw,40px);line-height:1.15;margin:0 0 10px;font-weight:600;letter-spacing:-.01em}
+header.top p{margin:4px 0;color:var(--steel);max-width:72ch}
+.routes{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.pill{font-size:13px;font-weight:500;padding:3px 10px;border-radius:999px;border:1px solid currentColor}
+.pill.local{color:var(--local);background:var(--local-bg)}.pill.cloud{color:var(--cloud);background:var(--cloud-bg)}.pill.held{color:var(--held);background:var(--held-bg)}
+.part{margin-top:56px;padding-top:10px;border-top:1px solid var(--rule)}
+.part>h2{font-size:28px;margin:12px 0 4px;font-weight:600}
+.part>p.lede{color:var(--steel);margin:0 0 8px;max-width:72ch}
+section{margin-top:40px}
+h3{font-size:20px;font-weight:600;margin:0 0 10px}
+h4{font-size:16px;font-weight:600;margin:20px 0 6px}
+p,li{max-width:76ch}
+.tbl{overflow-x:auto;margin:12px 0;border:1px solid var(--rule);border-radius:8px;background:var(--sheet)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.5}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--rule)}
+th{font-weight:600;background:var(--code-bg)}
+tr:last-child td{border-bottom:0}
+.diagram{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:14px;overflow-x:auto}
+.diagram svg{display:block;min-width:820px;width:100%;height:auto}
+.flow{background:var(--sheet);border:1px solid var(--rule);border-radius:10px;padding:14px 18px;margin:14px 0}
+.flow h4{margin-top:0}
+.flow ol{margin:6px 0 0;padding-left:22px}
+.note{border-left:4px solid var(--warn);background:var(--warn-bg);padding:10px 14px;margin:14px 0;max-width:80ch}
+.note.ok{border-color:var(--local);background:var(--local-bg)}
+.day{display:grid;grid-template-columns:110px minmax(0,1fr);gap:18px;padding:16px 0;border-bottom:1px solid var(--rule)}
+.day:last-child{border-bottom:0}
+.day .d{font-weight:600}
+.day .d span{display:block;font-weight:400;font-size:13px;color:var(--steel)}
+.day.run .d{color:var(--local)}
+.day ul{margin:4px 0;padding-left:20px}
+.check li{list-style:none;margin-left:-20px;padding-left:26px;position:relative}
+.check li::before{content:"";position:absolute;left:2px;top:.45em;width:12px;height:12px;border:1.5px solid var(--steel);border-radius:3px}
+.first{border:2px solid var(--cloud);background:var(--cloud-bg);border-radius:10px;padding:16px 20px;margin-top:16px}
+.first h3{color:var(--cloud)}
+.svgt{fill:var(--ink);font:500 13px "IBM Plex Sans",system-ui,sans-serif}
+.svgs{fill:var(--steel);font:400 11.5px "IBM Plex Sans",system-ui,sans-serif}
+.svgbox{fill:var(--sheet);stroke:var(--steel);stroke-width:1}
+.svgcont{fill:none;stroke:var(--steel);stroke-width:1.2;stroke-dasharray:5 4}
+.svglocal{fill:var(--local-bg);stroke:var(--local);stroke-width:1.2}
+.svgcloud{fill:var(--cloud-bg);stroke:var(--cloud);stroke-width:1.2}
+.svgheld{fill:var(--held-bg);stroke:var(--held);stroke-width:1.2}
+a{color:var(--cloud)}
+:focus-visible{outline:2px solid var(--cloud);outline-offset:2px}
+@media (max-width:860px){.wrap{grid-template-columns:1fr;gap:0;padding:24px 16px 60px}nav{position:static;border-bottom:1px solid var(--rule);padding-bottom:12px;margin-bottom:12px}.day{grid-template-columns:1fr;gap:4px}}
+@media print{nav{display:none}.wrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav aria-label="Contents">
+<p>System design</p>
+<a href="#goal">Goal and scope</a>
+<a href="#constraints">Constraints and assumptions</a>
+<a href="#architecture">Architecture</a>
+<a href="#components">Components and contracts</a>
+<a href="#routing">Routing and failure policy</a>
+<a href="#flows">Key flows</a>
+<a href="#state">State and concurrency</a>
+<a href="#schedule">Schedules</a>
+<a href="#security">Security and approval</a>
+<a href="#observability">Observability</a>
+<a href="#decisions">Decision record</a>
+<a href="#risks">Risks and open questions</a>
+<a href="#mapping">Requirement to evidence</a>
+<p>Development plan</p>
+<a href="#first">First task</a>
+<a href="#calendar">Calendar</a>
+<a href="#feasibility">Feasibility tests</a>
+<a href="#milestones">Milestones</a>
+<a href="#measure">Validation and measurement</a>
+<a href="#evidence">Evidence collection</a>
+<a href="#submission">Demo and submission</a>
+<a href="#contingency">Contingency and polish</a>
+</nav>
+<main>
+<header class="top">
+<h1>Chitti assistant: Assignment 3 system design and development plan</h1>
+<p>CSCI 599 Assignment 3. OpenClaw on Google Cloud Run Instances, ChatGPT through OpenClaw’s OAuth login, Gemma 4 on a 16 GB M4 MacBook through Ollama and Tailscale, Telegram for messaging.</p>
+<p>Deadline: Tuesday, Nov 17, 2026, 11:59 PM PST. Planned on Nov 11. Items marked “verify” are unconfirmed until the named test passes.</p>
+<div class="routes" aria-label="Route colours used in this document"><span class="pill local">Local: Gemma on the laptop</span><span class="pill cloud">Cloud: ChatGPT</span><span class="pill held">Held: sent to no model</span></div>
+</header>
+
+<div class="part" id="design">
+<h2>Part 1: System design</h2>
+<p class="lede">What the system is, how each piece behaves, and how every graded requirement is proven.</p>
+
+<section id="goal">
+<h3>Goal and scope</h3>
+<p>A personal assistant that runs continuously in the cloud, answers through Telegram and the OpenClaw dashboard, reads a test Gmail inbox and Google Calendar, and reaches out on its own with a morning briefing, meeting alerts, and an evening recap. Each message is routed to the right model: simple and private requests to Gemma on the laptop, heavier and tool-based work to ChatGPT, and private requests are held when the laptop is unreachable.</p>
+<h4>Success criteria</h4>
+<ul>
+<li>The deployed agent completes the four video requests on the correct routes (local, cloud, held, local), and the Cloud Logging output proves each one.</li>
+<li>Briefing, alert, and recap arrive in Telegram without being asked, from real scheduled jobs.</li>
+<li>No email is ever sent without a human clicking Approve, and only to allowlisted addresses.</li>
+<li>48 hours of continuous operation with hourly evidence, and state that survives a restart.</li>
+<li>focus-finder is published on ClawHub and installed fresh on the agent from there.</li>
+</ul>
+<h4>In scope</h4>
+<p>Skills: email and calendar (gog), web search, weather, focus-finder. Advanced features: morning briefing, end-of-day recap, proactive alerts, email integration. Security measures claimed: container isolation, permission scoping, credential management.</p>
+<h4>Out of scope for now</h4>
+<p>Prompt-injection defense as a claimed measure (optional on Nov 17 if time allows), calendar intelligence, personal knowledge base, additional messaging platforms.</p>
+</section>
+
+<section id="constraints">
+<h3>Constraints and assumptions</h3>
+<div class="tbl"><table>
+<thead><tr><th>Item</th><th>Type</th><th>Detail</th></tr></thead>
+<tbody>
+<tr><td>Platform and hosting</td><td>Required</td><td>OpenClaw in a container on Cloud Run Instances (not Cloud Run Services). Laptop runs inference only.</td></tr>
+<tr><td>Cloud model</td><td>Chosen</td><td>ChatGPT Edu via <code>openclaw models auth login --provider openai</code>, browser sign-in (device code is blocked). Separate laptop and cloud sign-ins because refresh tokens are single-use.</td></tr>
+<tr><td>Local model</td><td>Assumed (F4)</td><td>Gemma 4 E4B as custom tag <code>gemma4-a3:e4b</code> with 32K context; E2B if E4B is too slow or memory-bound on 16 GB.</td></tr>
+<tr><td>OpenClaw version</td><td>Assumed (F1)</td><td>Pin 2026.10.9 (course-tested) on laptop and image; Node 24.22.1 or newer.</td></tr>
+<tr><td>Accounts</td><td>Required</td><td>Throwaway, class-only Gmail (email and calendar), Telegram bot, ClawHub account. Synthetic data only.</td></tr>
+<tr><td>Grader access</td><td>Required</td><td>Tailscale share link to the agent machine; graders reach port 443 only and test mostly while the laptop is off.</td></tr>
+<tr><td>Time</td><td>Fixed</td><td>Six days. The 48-hour run occupies Nov 15 to Nov 17 morning; there is no room for a full rerun.</td></tr>
+<tr><td>Time zone</td><td>Chosen</td><td>America/Los_Angeles for schedules, logs reviewed in PST.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="architecture">
+<h3>Architecture</h3>
+<p>Everything conversational lives in the cloud container. The laptop only serves Gemma, reachable over the private tailnet. Coloured lines show the three routes.</p>
+<div class="diagram" role="img" aria-label="Architecture: laptop with Ollama and Tailscale Serve on the left, Cloud Run Instance container with OpenClaw, router plugin, cron, skills, Ollama forwarder, send-email wrapper and state snapshot agent in the middle, and external services on the right: ChatGPT, Telegram, Gmail and Calendar, weather and web, Cloud Storage, Secret Manager, Cloud Logging.">
+<svg viewBox="0 0 960 580" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<rect class="svgcont" x="20" y="60" width="210" height="190" rx="12"/>
+<text class="svgs" x="34" y="82">Your MacBook (M4, 16 GB)</text>
+<rect class="svglocal" x="40" y="96" width="170" height="54" rx="8"/>
+<text class="svgt" x="125" y="119" text-anchor="middle">Ollama + Gemma 4</text>
+<text class="svgs" x="125" y="137" text-anchor="middle">127.0.0.1:11434</text>
+<rect class="svgbox" x="40" y="172" width="170" height="54" rx="8"/>
+<text class="svgt" x="125" y="195" text-anchor="middle">Tailscale Serve</text>
+<text class="svgs" x="125" y="213" text-anchor="middle">tcp:11434 on tailnet</text>
+<rect class="svgbox" x="20" y="320" width="210" height="58" rx="8"/>
+<text class="svgt" x="125" y="344" text-anchor="middle">You or grader browser</text>
+<text class="svgs" x="125" y="362" text-anchor="middle">tailnet, port 443 only</text>
+<rect class="svgcont" x="270" y="40" width="420" height="500" rx="14"/>
+<text class="svgs" x="286" y="62">Cloud Run Instance (non-root container)</text>
+<rect class="svgbox" x="290" y="78" width="180" height="50" rx="8"/>
+<text class="svgt" x="380" y="99" text-anchor="middle">tailscaled</text>
+<text class="svgs" x="380" y="116" text-anchor="middle">userspace + SOCKS5 :1055</text>
+<rect class="svgbox" x="490" y="78" width="180" height="50" rx="8"/>
+<text class="svgt" x="580" y="99" text-anchor="middle">Tailscale Serve :443</text>
+<text class="svgs" x="580" y="116" text-anchor="middle">to gateway :18789</text>
+<rect class="svgbox" x="290" y="150" width="380" height="160" rx="10"/>
+<text class="svgs" x="304" y="170">OpenClaw gateway (dashboard, Telegram channel, agent turns)</text>
+<rect class="svgcloud" x="304" y="182" width="170" height="54" rx="8"/>
+<text class="svgt" x="389" y="205" text-anchor="middle">Router plugin</text>
+<text class="svgs" x="389" y="223" text-anchor="middle">picks model per turn</text>
+<rect class="svgbox" x="488" y="182" width="168" height="54" rx="8"/>
+<text class="svgt" x="572" y="205" text-anchor="middle">Cron jobs</text>
+<text class="svgs" x="572" y="223" text-anchor="middle">briefing, alerts, recap</text>
+<rect class="svgbox" x="304" y="248" width="352" height="48" rx="8"/>
+<text class="svgt" x="480" y="268" text-anchor="middle">Skills</text>
+<text class="svgs" x="480" y="285" text-anchor="middle">gog email + calendar, web search, weather, focus-finder</text>
+<rect class="svglocal" x="290" y="330" width="180" height="56" rx="8"/>
+<text class="svgt" x="380" y="353" text-anchor="middle">Ollama forwarder</text>
+<text class="svgs" x="380" y="371" text-anchor="middle">loopback to SOCKS5, logs calls</text>
+<rect class="svgheld" x="490" y="330" width="180" height="56" rx="8"/>
+<text class="svgt" x="580" y="353" text-anchor="middle">send-email wrapper</text>
+<text class="svgs" x="580" y="371" text-anchor="middle">allowlist + human approval</text>
+<rect class="svgbox" x="290" y="406" width="380" height="54" rx="8"/>
+<text class="svgt" x="480" y="429" text-anchor="middle">Local state + snapshot agent</text>
+<text class="svgs" x="480" y="447" text-anchor="middle">restore at boot, push every 5 min, login file on change</text>
+<rect class="svgbox" x="290" y="478" width="380" height="46" rx="8"/>
+<text class="svgt" x="480" y="497" text-anchor="middle">Health poller + structured JSON logs</text>
+<text class="svgs" x="480" y="513" text-anchor="middle">Ollama check every 10 s, stdout to Cloud Logging</text>
+<rect class="svgcloud" x="730" y="56" width="210" height="50" rx="8"/>
+<text class="svgt" x="835" y="77" text-anchor="middle">ChatGPT (OAuth)</text>
+<text class="svgs" x="835" y="94" text-anchor="middle">Codex runtime in OpenClaw</text>
+<rect class="svgbox" x="730" y="124" width="210" height="50" rx="8"/>
+<text class="svgt" x="835" y="145" text-anchor="middle">Telegram</text>
+<text class="svgs" x="835" y="162" text-anchor="middle">bot, your desktop app</text>
+<rect class="svgbox" x="730" y="192" width="210" height="50" rx="8"/>
+<text class="svgt" x="835" y="213" text-anchor="middle">Gmail + Calendar</text>
+<text class="svgs" x="835" y="230" text-anchor="middle">throwaway test account</text>
+<rect class="svgbox" x="730" y="260" width="210" height="50" rx="8"/>
+<text class="svgt" x="835" y="281" text-anchor="middle">Weather + web search</text>
+<text class="svgs" x="835" y="298" text-anchor="middle">public data</text>
+<rect class="svgbox" x="730" y="350" width="210" height="50" rx="8"/>
+<text class="svgt" x="835" y="371" text-anchor="middle">Cloud Storage bucket</text>
+<text class="svgs" x="835" y="388" text-anchor="middle">snapshots, Tailscale state</text>
+<rect class="svgbox" x="730" y="418" width="210" height="50" rx="8"/>
+<text class="svgt" x="835" y="439" text-anchor="middle">Secret Manager</text>
+<text class="svgs" x="835" y="456" text-anchor="middle">tokens, keys, logins</text>
+<rect class="svgbox" x="730" y="486" width="210" height="50" rx="8"/>
+<text class="svgt" x="835" y="507" text-anchor="middle">Cloud Logging</text>
+<text class="svgs" x="835" y="524" text-anchor="middle">a3-router lines, evidence</text>
+<path d="M290 358 L250 358 L250 199 L214 199" fill="none" stroke="var(--local)" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M125 172 L125 154" fill="none" stroke="var(--local)" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M380 330 L380 314" fill="none" stroke="var(--local)" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M474 196 L478 196 L478 140 L700 140 L700 81 L726 81" fill="none" stroke="var(--cloud)" stroke-width="2" marker-end="url(#ar)"/>
+<path d="M670 165 L712 165 L712 149 L726 149" fill="none" stroke="var(--steel)" stroke-width="1.3" marker-end="url(#ar)"/>
+<path d="M656 265 L712 265 L712 217 L726 217" fill="none" stroke="var(--steel)" stroke-width="1.3" marker-end="url(#ar)"/>
+<path d="M656 285 L726 285" fill="none" stroke="var(--steel)" stroke-width="1.3" marker-end="url(#ar)"/>
+<path d="M670 358 L700 358 L700 225 L726 225" fill="none" stroke="var(--held)" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#ar)"/>
+<path d="M670 433 L708 433 L708 375 L726 375" fill="none" stroke="var(--steel)" stroke-width="1.3" marker-end="url(#ar)"/>
+<path d="M690 443 L726 443" fill="none" stroke="var(--steel)" stroke-width="1.3" marker-end="url(#ar)"/>
+<path d="M670 511 L726 511" fill="none" stroke="var(--steel)" stroke-width="1.3" marker-end="url(#ar)"/>
+<path d="M230 349 L256 349 L256 32 L580 32 L580 74" fill="none" stroke="var(--steel)" stroke-width="1.3" marker-end="url(#ar)"/>
+<text class="svgs" x="40" y="560">Teal: local path. Indigo: cloud path. Rose dashed: approval-gated email send. Grey: tools, storage, logs.</text>
+</svg>
+</div>
+</section>
+
+<section id="components">
+<h3>Components and contracts</h3>
+<div class="tbl"><table>
+<thead><tr><th>Component</th><th>Responsibility</th><th>Contract</th></tr></thead>
+<tbody>
+<tr><td>Router plugin</td><td>Classify each turn and choose Gemma, ChatGPT, or held.</td><td><code>before_model_resolve</code> returns a provider or model override; <code>before_agent_reply</code> returns the held reply; after-turn hook writes the result line. Reads cached health only; never waits on the network.</td></tr>
+<tr><td>Health poller</td><td>Know whether Gemma is reachable.</td><td>Calls Ollama <code>/api/tags</code> through the forwarder every 10 s, 3 s timeout. Two failures mark local down; one success marks it up. Logs state changes.</td></tr>
+<tr><td>Ollama forwarder</td><td>Carry OpenClaw’s Ollama requests over the tailnet.</td><td>Listens on 127.0.0.1, forwards to the laptop’s tailnet address via <code>socks5h://127.0.0.1:1055</code>. Logs each completed call (model, latency, status). Cloud traffic never passes through it.</td></tr>
+<tr><td>OpenClaw gateway</td><td>Dashboard, Telegram channel, agent turns, skills, cron, exec approvals.</td><td>Pinned version; <code>gateway.auth.allowTailscale</code> on; automatic model failover off so only the router changes models.</td></tr>
+<tr><td>send-email wrapper</td><td>The only way mail can be sent.</td><td>Refuses non-allowlisted recipients with a logged error. Not on the auto-approved command list, so OpenClaw asks a human every time; scheduled turns cannot approve.</td></tr>
+<tr><td>focus-finder skill</td><td>Suggest focus blocks from calendar gaps.</td><td>Read-only. Input: date. Output: free gaps of 45 minutes or more between 9 AM and 6 PM. Published to ClawHub, installed from there.</td></tr>
+<tr><td>Snapshot agent</td><td>Make state durable.</td><td>Restore before gateway start; snapshot every 5 min; login file on change; final snapshot on stop signal.</td></tr>
+<tr><td>Startup script</td><td>Boot in a safe order.</td><td>Read secrets, restore state, start tailscaled with bucket state, Tailscale Serve, forwarder, poller, isolation report, then the gateway.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="routing">
+<h3>Routing and failure policy</h3>
+<p>Rules are checked from the top; the first match wins. Privacy words: confidential, private, personal, sensitive, password, bank, medical, salary, SSN, diagnosis (list kept in config and the README).</p>
+<div class="tbl"><table>
+<thead><tr><th>#</th><th>Rule</th><th>Matches when</th><th>Local up</th><th>Local down</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>privacy-sensitive</code></td><td>The user’s message contains a privacy word</td><td><span class="pill local">local</span></td><td><span class="pill held">held</span> <code>privacy-local-unavailable</code></td></tr>
+<tr><td>2</td><td><code>long-context</code></td><td>Session size estimate above the threshold measured in F4</td><td><span class="pill cloud">cloud</span></td><td><span class="pill cloud">cloud</span></td></tr>
+<tr><td>3</td><td><code>tool-task</code></td><td>Mentions email, inbox, calendar, meeting, schedule, search, weather, or the turn comes from a cron job</td><td><span class="pill cloud">cloud</span></td><td><span class="pill cloud">cloud</span></td></tr>
+<tr><td>4</td><td><code>reasoning-heavy</code></td><td>Step by step, explain why, analyze, compare, plan, or longer than 400 characters</td><td><span class="pill cloud">cloud</span></td><td><span class="pill cloud">cloud</span></td></tr>
+<tr><td>5</td><td><code>simple-task</code></td><td>Up to 200 characters and nothing above</td><td><span class="pill local">local</span></td><td><span class="pill cloud">cloud</span> <code>local-unavailable</code></td></tr>
+<tr><td>6</td><td><code>default-cloud</code></td><td>Anything else</td><td><span class="pill cloud">cloud</span></td><td><span class="pill cloud">cloud</span></td></tr>
+</tbody></table></div>
+<h4>Held reply</h4>
+<p>“The local model is off and can’t be reached right now, so this private request was held and not sent to any model. Please try again when it’s back.” Logged as target <code>held</code>, model <code>none</code>, ok <code>false</code>. Nothing is queued for later.</p>
+<h4>Simulated rate limit</h4>
+<p>A config flag, <code>router.simulateRateLimit</code>, toggled with a documented command. While on, rules 3 to 6 go to Gemma if it is reachable (reason <code>cloud-rate-limited</code>); otherwise the agent replies that the cloud is unavailable. Turning it off restores normal routing. No real quota is spent.</p>
+<h4>Timeouts and retries</h4>
+<ul>
+<li>Gemma calls: 120 s timeout to allow a cold load (about 45 s on first use). One retry only if the health poller still reports up.</li>
+<li>ChatGPT calls: OpenClaw’s own timeout; one retry on network errors, none on 4xx such as an unsupported model.</li>
+<li>No silent cross-route fallback: if Gemma fails mid-turn, the reply says so and the log shows ok <code>false</code>.</li>
+</ul>
+<h4>Privacy statement for the README</h4>
+<p>Private requests are processed only by Gemma on the laptop, or held. The cloud container still orchestrates the turn, stores the conversation in its state snapshot, and logs routing metadata without message text. The README will say this plainly rather than claim data never leaves the laptop.</p>
+</section>
+
+<section id="flows">
+<h3>Key flows</h3>
+<div class="flow"><h4>Ordinary message (“What is 12 times 9?”)</h4><ol>
+<li>Message arrives in the dashboard or Telegram; OpenClaw starts a turn.</li>
+<li>Router: no privacy word, no tool word, short, local up, so <code>simple-task</code> to <code>gemma4-a3:e4b</code>. Decision line logged with a request ID.</li>
+<li>OpenClaw calls the forwarder, which reaches the laptop through SOCKS5 and Tailscale. Forwarder logs the completed call.</li>
+<li>Reply “108” is delivered; the after-turn hook logs the result line with the model that actually answered.</li></ol></div>
+<div class="flow"><h4>Scheduled morning briefing</h4><ol>
+<li>Cron fires at 7:30 AM PST in an isolated session.</li>
+<li>Router: cron turn, so <code>tool-task</code> to the cloud. (F5 confirms the hook fires for cron; otherwise the job pins the cloud model and logs its own line.)</li>
+<li>Agent reads today’s events, runs focus-finder for gaps, gets weather, summarizes top unread email.</li>
+<li>Briefing is posted to Telegram; a delivery line records the job ID and date so a restart does not repeat it.</li></ol></div>
+<div class="flow"><h4>Email draft that needs approval</h4><ol>
+<li>You ask: “Reply to the test vendor that Thursday works.” Router: <code>tool-task</code>, cloud.</li>
+<li>Agent drafts the reply and shows it.</li>
+<li>To send, the agent runs <code>send-email</code>. The wrapper checks the recipient against the allowlist; a miss is refused and logged.</li>
+<li>OpenClaw shows “Exec approval needed”. Only a human click sends it. In a cron turn nobody can click, so the request times out and only a draft remains, with a Telegram notice.</li></ol></div>
+<div class="flow"><h4>Local inference fails and recovers</h4><ol>
+<li>You quit Ollama. Within about 20 s the poller logs <code>local=down</code>.</li>
+<li>“This is confidential: remind me my locker code…” matches <code>privacy-sensitive</code> with local down, so it is held: held reply, log target <code>held</code>, ok <code>false</code>.</li>
+<li>A non-private question still goes to the cloud (<code>local-unavailable</code> or the normal cloud rule).</li>
+<li>You start Ollama. Within about 10 s the poller logs <code>local=up</code>; the next private message goes to Gemma.</li></ol></div>
+<div class="flow"><h4>Restart and state restoration</h4><ol>
+<li>Cloud Run restarts the instance (crash, maintenance, or the planned test).</li>
+<li>Startup script restores the newest bucket snapshot before the gateway starts and logs <code>state-restored</code> with the snapshot time.</li>
+<li>Tailscale comes back with the same machine name from bucket state; the grader link still works.</li>
+<li>Missed-job check: if today’s briefing was not delivered and it is before noon, run it once.</li>
+<li>Fresh conversation: “What’s my favourite meeting time?” recalls the synthetic preference saved before the restart.</li></ol></div>
+</section>
+
+<section id="state">
+<h3>State and concurrency</h3>
+<div class="tbl"><table>
+<thead><tr><th>Data</th><th>Live location</th><th>Durability</th></tr></thead>
+<tbody>
+<tr><td>OpenClaw config, sessions, cron jobs, workspace files (SOUL.md, USER.md, IDENTITY.md, memory)</td><td>Container local disk</td><td>Snapshot every 5 min to <code>gs://…/snapshots/</code>; newest plus previous kept</td></tr>
+<tr><td>ChatGPT login (auth profiles)</td><td>Container local disk</td><td>Copied to the bucket immediately on every change, because the refresh token is single-use</td></tr>
+<tr><td>Tailscale state</td><td>Bucket mount</td><td>Written directly, as the course guide specifies</td></tr>
+<tr><td>Alert and job delivery records</td><td>Small JSON file in state</td><td>Included in snapshots; keyed by event ID or job and date</td></tr>
+</tbody></table></div>
+<ul>
+<li>Single instance and single writer: the snapshot agent is the only process writing snapshots. Uploads go to a temporary object, then replace the newest only if the upload succeeded.</li>
+<li>Any SQLite file is copied with SQLite’s backup command, not a raw file copy.</li>
+<li>Delivery-record updates use write-to-temp-then-rename so a crash never leaves half a file.</li>
+<li>Acceptable loss: up to 5 minutes of chat history. Logins and delivery records are not lost.</li>
+</ul>
+</section>
+
+<section id="schedule">
+<h3>Schedules</h3>
+<div class="tbl"><table>
+<thead><tr><th>Job</th><th>When (PST)</th><th>Output</th></tr></thead>
+<tbody>
+<tr><td>Morning briefing</td><td>7:30 AM daily</td><td>Events and gaps, weather, top unread email summaries; optional deadline reminders</td></tr>
+<tr><td>Meeting alert</td><td>Every 5 min</td><td>Alert for events starting in 15 to 30 min; once per event ID</td></tr>
+<tr><td>End-of-day recap</td><td>6:00 PM daily</td><td>What the agent did today (from its logs), drafts awaiting approval, tomorrow’s first events</td></tr>
+<tr><td>Hourly evidence</td><td>Every hour</td><td>One small cloud request plus a health line; proves the full 48-hour window</td></tr>
+</tbody></table></div>
+<p>Run-now: OpenClaw’s cron run command (exact command verified in F5) delivers through the same job and channel for the video.</p>
+</section>
+
+<section id="security">
+<h3>Security and approval</h3>
+<div class="tbl"><table>
+<thead><tr><th>Measure</th><th>Implementation</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>Container isolation</td><td>Non-root user, no added capabilities, only the gateway behind Tailscale Serve; startup isolation report logs user, capabilities, and listening ports</td><td>Isolation report in Cloud Logging, Dockerfile, audit section</td></tr>
+<tr><td>Permission scoping</td><td>send-email wrapper with allowlist and human approval; tool and command allowlist; Tailscale rules (graders to 443 only, agent to laptop 11434 only); focus-finder read-only</td><td>Approval test, refused-recipient test, cron draft-only test, Tailscale policy</td></tr>
+<tr><td>Credential management</td><td>Secret Manager for the Telegram token, Tailscale key, Google login, and cloud ChatGPT login bootstrap; <code>.env.example</code> placeholders only</td><td>Secret names list, repo secret scan, sample logs without tokens</td></tr>
+</tbody></table></div>
+<h4>Threat model (at least five risks)</h4>
+<div class="tbl"><table>
+<thead><tr><th>Risk</th><th>Mitigation</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Agent sends email without consent</td><td>Wrapper is the only send path; allowlist; human approval enforced by OpenClaw exec approvals</td><td>Mitigated</td></tr>
+<tr><td>Credential leak via repo, image, logs, or video</td><td>Secret Manager; no secrets in source or image; logs exclude tokens and message text; screen checklist</td><td>Mitigated</td></tr>
+<tr><td>Grader or attacker reaches the laptop</td><td>Laptop not shared; ACL allows only the agent tag to port 11434</td><td>Mitigated</td></tr>
+<tr><td>Private request reaches the cloud model</td><td>Rule 1 holds private requests when local is down; failover disabled</td><td>Mitigated for keyword-flagged messages</td></tr>
+<tr><td>Restart loses memory or logs the agent out</td><td>Snapshots, immediate login backup, restore before start</td><td>Mitigated</td></tr>
+<tr><td>Prompt injection through email or web text</td><td>Sends still need human approval; content treated as data in prompts</td><td>Remaining risk, not claimed</td></tr>
+<tr><td>Graders have full operator access</td><td>Throwaway accounts with synthetic data only</td><td>Accepted by design</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="observability">
+<h3>Observability</h3>
+<p>All lines are JSON on stdout with <code>component: "a3-router"</code> (or <code>a3-ops</code> for operations). No message text.</p>
+<div class="tbl"><table>
+<thead><tr><th>kind</th><th>Fields</th></tr></thead>
+<tbody>
+<tr><td><code>route_decision</code></td><td>requestId, rule, target, model, sessionSizeEst, localHealthy</td></tr>
+<tr><td><code>route_result</code></td><td>requestId, target, servedModel, ok, latencyMs, error</td></tr>
+<tr><td><code>ollama_call</code></td><td>model, status, latencyMs (from the forwarder)</td></tr>
+<tr><td><code>health</code></td><td>local up or down, changed-at</td></tr>
+<tr><td><code>ops</code></td><td>boot, state-restored, snapshot, job-delivered, job-missed, isolation-report, hourly</td></tr>
+</tbody></table></div>
+<p>Video log command (field names may be adjusted once implemented):</p>
+<p><code>gcloud logging read 'jsonPayload.component="a3-router"' --project=PROJECT --freshness=30m --order=desc --format="table(timestamp.date('%H:%M:%S'),jsonPayload.kind,jsonPayload.rule,jsonPayload.target,jsonPayload.servedModel,jsonPayload.ok)"</code></p>
+</section>
+
+<section id="decisions">
+<h3>Decision record</h3>
+<div class="tbl"><table>
+<thead><tr><th>Decision</th><th>Alternatives</th><th>Reason</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>OpenClaw</td><td>Hermes</td><td>Already installed; native Tailscale identity for grader access</td><td>Chosen</td></tr>
+<tr><td>ChatGPT OAuth, separate sign-ins, login backed up on change</td><td>NVIDIA NIM key</td><td>Recommended by the assignment; supported by OpenClaw</td><td>Chosen</td></tr>
+<tr><td>Router as OpenClaw plugin plus logging forwarder</td><td>External proxy; built-in failover only</td><td>Keeps OAuth native; matches Description §3.3; least custom code</td><td>Chosen, pending F3 and F5</td></tr>
+<tr><td>Gemma 4 E4B at 32K</td><td>E2B</td><td>Better quality; 16 GB should fit</td><td>Proposed, F4</td></tr>
+<tr><td>Held for private when local is down</td><td>Cloud fallback</td><td>Clear, provable privacy rule</td><td>Chosen</td></tr>
+<tr><td>Narrow privacy keyword list</td><td>Treat all email and calendar as private</td><td>Keeps briefing and tools working while graders test with the laptop off</td><td>Chosen</td></tr>
+<tr><td>Telegram</td><td>Discord</td><td>Fastest channel setup; desktop app for recording</td><td>Chosen</td></tr>
+<tr><td>Briefing, recap, alerts, email integration</td><td>Calendar intelligence, knowledge base</td><td>Overlap with required demo items</td><td>Chosen</td></tr>
+<tr><td>Publish focus-finder to ClawHub</td><td>A2A; three platforms</td><td>Fully under your control; doubles as a useful skill</td><td>Chosen</td></tr>
+<tr><td>State on local disk with bucket snapshots</td><td>Live state on the bucket mount</td><td>The mount cannot host live databases safely</td><td>Chosen</td></tr>
+<tr><td>Claim isolation, scoping, credentials</td><td>Also claim injection defense</td><td>Injection claim needs three documented attacks; optional later</td><td>Chosen</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="risks">
+<h3>Risks and open questions</h3>
+<div class="tbl"><table>
+<thead><tr><th>Risk or question</th><th>Impact</th><th>Response</th></tr></thead>
+<tbody>
+<tr><td>Model switching between the Codex runtime and Ollama fails or loses context (F3)</td><td>Routing design</td><td>Decide by end of Nov 12; fallback is NVIDIA NIM with a proxy router</td></tr>
+<tr><td>Router hook does not fire for cron turns (F5)</td><td>Missing routing evidence</td><td>Pin cron jobs to the cloud model and log from the job</td></tr>
+<tr><td>Exec approval prompt not available in Telegram</td><td>Approval only in the dashboard</td><td>Acceptable; document that sends are approved in the dashboard</td></tr>
+<tr><td>ClawHub review flags focus-finder</td><td>Advanced integration evidence</td><td>Publish by Nov 13 to leave time to respond</td></tr>
+<tr><td>Google testing-mode sign-in expires after 7 days</td><td>Email and calendar fail during grading</td><td>Renew on Nov 16 and at submission; note in the README</td></tr>
+<tr><td>48-hour run interrupted</td><td>No time to rerun</td><td>Overnight trial run on Nov 14; managed restart with verified recovery is acceptable; record outages honestly</td></tr>
+<tr><td>Piazza clarification on held semantics</td><td>Low</td><td>Proceed with the reply-and-log design; adjust the README if staff say otherwise</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="mapping">
+<h3>Requirement to evidence</h3>
+<div class="tbl"><table>
+<thead><tr><th>Requirement</th><th>Component</th><th>Evidence</th></tr></thead>
+<tbody>
+<tr><td>Cloud Run Instance, containerized</td><td>Image, startup script</td><td>Instance URL, startup log with running version</td></tr>
+<tr><td>Cloud model plus local Gemma</td><td>OAuth login, forwarder</td><td>Video requests 1 and 2, <code>ollama ps</code>, log lines</td></tr>
+<tr><td>Task-aware routing, logged</td><td>Router plugin</td><td>Rule table, Cloud Logging excerpts, video step 10</td></tr>
+<tr><td>Local-down behaviour and private policy</td><td>Health poller, rule 1</td><td>Video requests 3 and 4, README policy</td></tr>
+<tr><td>Simulated rate limit</td><td>Router flag</td><td>Toggle command and log excerpt</td></tr>
+<tr><td>Telegram</td><td>Channel config</td><td>Video step 12</td></tr>
+<tr><td>Four skills</td><td>gog, web search, weather, focus-finder</td><td>Transcripts of each skill working</td></tr>
+<tr><td>Four advanced features</td><td>Cron jobs, gog</td><td>Telegram screenshots, video steps 13 to 15</td></tr>
+<tr><td>Persistent memory across restarts</td><td>Snapshot agent, bucket</td><td>Synthetic preference test, restore logs, bucket listing</td></tr>
+<tr><td>Proactive scheduling</td><td>Cron</td><td>Delivery logs over 48 hours</td></tr>
+<tr><td>48 hours continuous</td><td>Hourly evidence job</td><td>Exported log covering every hour</td></tr>
+<tr><td>Security (isolation plus one or more measures, 5 risks)</td><td>Isolation report, wrapper, Secret Manager</td><td>Security audit document and tests</td></tr>
+<tr><td>Email approval and allowlist in code</td><td>send-email wrapper</td><td>Approval and refusal tests in the audit</td></tr>
+<tr><td>Advanced integration</td><td>focus-finder</td><td>ClawHub URL, pinned version, fresh install transcript</td></tr>
+<tr><td>Performance report (3 or more task types)</td><td>Logs plus test prompts</td><td>Report with latency, quality, cost</td></tr>
+<tr><td>Personalization files</td><td>SOUL.md, USER.md, IDENTITY.md</td><td>Synthetic profile files in the ZIP</td></tr>
+<tr><td>Process log, video, grader access</td><td>Documentation</td><td><code>PROCESS_LOG.md</code>, MP4, Brightspace comment</td></tr>
+</tbody></table></div>
+</section>
+</div>
+
+<div class="part" id="plan">
+<h2>Part 2: Development plan</h2>
+<p class="lede">Dependency-ordered work from Nov 11 to Nov 17, with the riskiest assumptions tested first and the 48-hour run protected.</p>
+
+<div class="first" id="first">
+<h3>First task (today, Nov 11)</h3>
+<p>Run feasibility test F1 on your laptop: <code>openclaw --version</code>, <code>node --version</code>, then <code>openclaw config validate</code> and <code>openclaw doctor --non-interactive</code>. If the version is not 2026.10.9, decide now whether to pin 2026.10.9 or another tested release, and note it in <code>PROCESS_LOG.md</code>. Then continue straight into F2 and F4.</p>
+</div>
+
+<section id="calendar">
+<h3>Calendar</h3>
+<div class="day"><div class="d">Wed, Nov 11<span>afternoon and evening</span></div><div><ul><li>M0: F1, F2, F4 on the laptop.</li><li>Start <code>PROCESS_LOG.md</code> notes and an evidence folder.</li><li>Create the throwaway Gmail account and Telegram bot.</li></ul></div></div>
+<div class="day"><div class="d">Thu, Nov 12<span>decision day</span></div><div><ul><li>M0: F3 and F5 with a minimal router plugin on the laptop. Decide Option A or the NIM fallback by evening.</li><li>M1: GCP project, bucket, Secret Manager, Artifact Registry, Tailscale tag and ACL.</li><li>M2: vertical slice deployed (one cloud and one local reply through the deployed dashboard).</li></ul></div></div>
+<div class="day"><div class="d">Fri, Nov 13</div><div><ul><li>M3: full routing rules, health poller, held reply, rate-limit flag, logging.</li><li>M4: Telegram, gog email and calendar, web search, weather; send-email wrapper and approval tests.</li><li>M5: build focus-finder and publish to ClawHub.</li></ul></div></div>
+<div class="day"><div class="d">Sat, Nov 14</div><div><ul><li>M6: cron jobs, delivery records, run-now, hourly evidence.</li><li>M7: snapshots, restore, restart test, synthetic preference test; persona files.</li><li>M8: grader access via Tailscale Serve; full video dry run.</li><li>About 8 PM: freeze and start the overnight trial run.</li></ul></div></div>
+<div class="day run"><div class="d">Sun, Nov 15<span>48-hour run starts</span></div><div><ul><li>Review trial-run logs; fix and redeploy once if needed.</li><li>About 9 AM: final deploy, then no changes. 48-hour run begins.</li><li>Write README, security audit, start performance measurements.</li></ul></div></div>
+<div class="day run"><div class="d">Mon, Nov 16<span>run continues</span></div><div><ul><li>Renew Google sign-in. Seed a test meeting 35 to 40 min ahead.</li><li>Rehearse once, then record the video (laptop-side changes only).</li><li>Finish the performance report and focus-finder fresh-install transcript.</li></ul></div></div>
+<div class="day run"><div class="d">Tue, Nov 17<span>run ends about 9 AM</span></div><div><ul><li>Export 48-hour logs and bucket evidence.</li><li>Finish <code>PROCESS_LOG.md</code>; secret scan; build <code>firstname_lastname_a3.zip</code>.</li><li>Create the Tailscale share link; Brightspace comment with access details.</li><li>Submit by 6 PM PST to keep a buffer. Optional injection-defense tests only after submission is ready.</li></ul></div></div>
+</section>
+
+<section id="feasibility">
+<h3>Feasibility tests</h3>
+<div class="tbl"><table>
+<thead><tr><th>Test</th><th>Passes when</th><th>If it fails</th></tr></thead>
+<tbody>
+<tr><td>F1 Version</td><td>Pinned OpenClaw version, Node 24.22.1 or newer, config validates</td><td>Install the pinned version before anything else</td></tr>
+<tr><td>F2 ChatGPT login</td><td>Browser login works; a model from the live workspace list answers</td><td>Check Codex access in the Edu workspace; else switch to NIM now</td></tr>
+<tr><td>F3 Per-turn switching</td><td>Cloud, local, cloud in one session with tools on; each turn sees the earlier ones; logs show the served model</td><td>NIM API key plus external proxy router (Option B)</td></tr>
+<tr><td>F4 Gemma realism</td><td>E4B with 32K context completes a real tool-calling agent turn; <code>ollama ps</code> shows 32K; cold and warm times recorded</td><td>E2B, smaller tool set, longer timeout</td></tr>
+<tr><td>F5 Cron routing</td><td>A cron-triggered turn produces router log lines; run-now command confirmed</td><td>Pin cron jobs to cloud and log from the job</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="milestones">
+<h3>Milestones</h3>
+<div class="tbl"><table>
+<thead><tr><th>Milestone</th><th>Tasks</th><th>Done when</th><th>Effort</th></tr></thead>
+<tbody>
+<tr><td>M0 Feasibility</td><td>F1 to F5; Modelfile for <code>gemma4-a3:e4b</code>; minimal plugin</td><td>All five tests pass or the fallback is chosen</td><td>5 to 8 h</td></tr>
+<tr><td>M1 Cloud foundation</td><td>Project, billing alert, bucket, Secret Manager, Artifact Registry, service account, Tailscale tag, ACL, non-ephemeral auth key</td><td>Secrets readable by the service account; ACL saved with 443 and 11434 rules</td><td>2 to 3 h</td></tr>
+<tr><td>M2 Vertical slice</td><td>Dockerfile (pinned versions), startup script, forwarder, cloud ChatGPT login, deploy</td><td>One cloud and one local reply through the deployed dashboard, visible in logs</td><td>4 to 6 h</td></tr>
+<tr><td>M3 Router</td><td>Rules 1 to 6, poller, held reply, rate-limit flag, decision and result logging, failover off</td><td>The four video prompts route correctly; log command shows them</td><td>4 to 5 h</td></tr>
+<tr><td>M4 Skills and gate</td><td>Telegram, gog, web search, weather, wrapper, allowlist, approval</td><td>Each skill works from Telegram; unapproved and non-allowlisted sends are blocked</td><td>4 to 6 h</td></tr>
+<tr><td>M5 focus-finder</td><td>SKILL.md and script, local test, <code>clawhub skill publish --dry-run</code>, publish, fresh install</td><td>Public ClawHub page and version; installed from ClawHub on the agent</td><td>2 to 3 h</td></tr>
+<tr><td>M6 Proactive</td><td>Briefing, alert, recap, hourly evidence, delivery records, missed-job check</td><td>Each job delivers to Telegram via run-now; no duplicate alerts</td><td>3 to 4 h</td></tr>
+<tr><td>M7 Memory</td><td>Snapshot agent, restore, login-on-change copy, persona files</td><td>Restart test passes; synthetic preference recalled in a fresh session</td><td>3 to 4 h</td></tr>
+<tr><td>M8 Grader access and dry run</td><td>Tailscale Serve, allowTailscale, allowed origins; video rehearsal</td><td>Dashboard opens with no token from a new browser session; full script under 12 min</td><td>2 to 3 h</td></tr>
+<tr><td>M9 Run, docs, submit</td><td>Trial run, 48-hour run, README, audit, performance report, process log, video, ZIP</td><td>Submission uploaded with all checklist items</td><td>8 to 12 h plus run time</td></tr>
+</tbody></table></div>
+<p>Critical path: F3 and F2 decide the router; M2 must work before anything else is deployed; M6 and M7 must be done before the Nov 14 trial run.</p>
+</section>
+
+<section id="measure">
+<h3>Validation and measurement</h3>
+<h4>Performance report</h4>
+<ul>
+<li>Task types: simple, reasoning, private (local only), and tool tasks (cloud only), five fixed prompts each.</li>
+<li>Run each simple and private prompt cold and warm on Gemma, and the simple and reasoning prompts on ChatGPT for comparison.</li>
+<li>Latency from <code>route_result</code> and <code>ollama_call</code> lines; quality scored 1 to 3 against a written expected answer; record context size, thinking setting, hardware, and failures.</li>
+<li>Cost: ChatGPT Edu has no per-request charge; record request counts, plus Cloud Run and storage cost from billing. Gemma cost is local electricity, noted qualitatively.</li>
+<li>Report only measured numbers.</li>
+</ul>
+<h4>Functional checks</h4>
+<ul class="check">
+<li>Four video prompts route local, cloud, held, local.</li>
+<li>Rate-limit flag on and off, with logs.</li>
+<li>Approval required for a send; non-allowlisted recipient refused; cron produces a draft only.</li>
+<li>Restart: same Tailscale name, state restored, preference recalled, ChatGPT still logged in.</li>
+<li>Grader link works from a fresh browser with the laptop off; a non-private question is answered by the cloud.</li>
+</ul>
+</section>
+
+<section id="evidence">
+<h3>Evidence collection</h3>
+<ul>
+<li>Keep an <code>evidence/</code> folder: dated log exports, screenshots, transcripts, and the isolation report.</li>
+<li>Write <code>PROCESS_LOG.md</code> notes daily: tools and models used, material prompts, AI-generated code attribution, how each piece was verified. The 200 to 300 word narrative and the learning reflection must be in your own words.</li>
+<li>During the 48-hour run, export logs every 12 hours so an outage cannot erase evidence.</li>
+<li>Attribute any adapted external code in comments and the process log.</li>
+</ul>
+</section>
+
+<section id="submission">
+<h3>Demo and submission checklist</h3>
+<ul class="check">
+<li>Video: Hardware UUID, running version, <code>ollama list</code> and <code>tailscale serve status</code>, four requests, log command, <code>ollama ps</code>, Telegram reply, briefing, alert, recap. Under 12 minutes, no secrets, no cloud restart. File named <code>Assignment3-CSCI599-USCusername.mp4</code>.</li>
+<li>Root README: setup, architecture, routing rules, held policy, privacy statement, rate-limit toggle, run-now commands.</li>
+<li>Source, config, skills, router, scheduling, deployment files; <code>.env.example</code> with placeholders.</li>
+<li>Deployment URL and 48-hour evidence; bucket persistence evidence.</li>
+<li>Security audit; performance report; persona files; <code>PROCESS_LOG.md</code>.</li>
+<li>ClawHub URL, pinned version, and fresh-install transcript.</li>
+<li>Brightspace comment only: Tailscale share link (reusable), agent URL, test email and calendar logins; 2-step verification off on the test account.</li>
+<li>After submitting: leave the agent running and unchanged until regrades close.</li>
+</ul>
+</section>
+
+<section id="contingency">
+<h3>Contingency and optional polish</h3>
+<div class="tbl"><table>
+<thead><tr><th>If</th><th>Then</th></tr></thead>
+<tbody>
+<tr><td>F3 fails on Nov 12</td><td>Get an NVIDIA NIM key that evening; build the proxy router on Nov 13; drop optional polish</td></tr>
+<tr><td>Behind schedule on Nov 14</td><td>Cut the missed-job catch-up and extra privacy words; keep approval gate, snapshots, and logging</td></tr>
+<tr><td>Trial run shows a crash</td><td>Fix once on Nov 15 morning; if still unstable, rely on managed restart with verified recovery and document it</td></tr>
+<tr><td>48-hour run breaks</td><td>Record the outage honestly with timestamps; show recovery evidence; no full rerun is possible</td></tr>
+<tr><td>Time left on Nov 17</td><td>Add prompt-injection defense: three planted attacks in test email and web content, documented pass or fail</td></tr>
+</tbody></table></div>
+</section>
+</div>
+</main>
+</div>
+</body>
+</html>

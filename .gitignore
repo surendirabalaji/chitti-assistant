@@ -1,0 +1,4 @@
+.env
+*.key
+evidence/raw/
+node_modules/

@@ -1,0 +1,17 @@
+surensfolder@Surendiras-Air ~ % openclaw models list --refresh --provider openai
+│
+◇  
+
+🦞 OpenClaw 2026.10.9 (8b18b55) — Type the command with confidence—nature will provide the stack trace if needed.
+
+Model                                      Input      Ctx         Local Auth  Tags
+openai/gpt-6-astra                         text+image 272k/872k   no    yes   default,configured
+openai/gpt-6.1-sol                         text+image 500k/872k   no    yes   
+openai/gpt-6-luna                          text+image 272k/872k   no    yes   
+openai/gpt-6-sol                           text+image 272k/872k   no    yes   
+openai/gpt-5.6-sol                         text+image 272k/372k   no    yes   
+openai/gpt-5.6-terra                       text+image 272k/372k   no    yes   
+openai/gpt-5.6-luna                        text+image 272k/372k   no    yes   
+openai/gpt-6.1-terra                       text+image 500k/872k   no    yes   
+surensfolder@Surendiras-Air ~ % 
+
