@@ -35,11 +35,11 @@ Tick boxes as work is **verified**, not just written. Effort ranges are estimate
 ## M2 Vertical slice (4–6 h)
 - [x] `deploy/package.json` + `package-lock.json` pinning openclaw 2026.10.9 (resolved with `--before`, generated in linux/amd64 `node:24.22.1-bookworm-slim`; pinned `allowScripts` for 5 packages) (Nov 12). `npm ci` in the image ok Nov 13
 - [x] Dockerfile `node:24.22.1-bookworm-slim`, non-root user, `npm ci`, Tailscale binaries, writable `/var/run/tailscale`. **Written Nov 13** (digest-pinned base, Tailscale 1.104.7 checksum-verified, uid 10001, root-owned code, allowlist `.dockerignore`; `docker build --check` clean). **Built + smoke-tested locally Nov 13** (amd64, uid 10001, no install-scripts warning, gateway ready with 4 plugins on loopback only)
-- [ ] Startup script: read secrets → restore state → tailscaled (userspace, SOCKS5 :1055, state on bucket) → tailscale up → serve :443 → forwarder → isolation report → `openclaw gateway run`. **Written Nov 13** (`bash -n` + shellcheck clean; Serve is done by OpenClaw `gateway.tailscale.mode: serve`; restore/snapshot = M7 TODO; device-code login on first boot); not run yet
+- [x] Startup script: read secrets → restore state → tailscaled (userspace, SOCKS5 :1055, state on bucket) → tailscale up → serve :443 → forwarder → isolation report → `openclaw gateway run`. **Written Nov 13** (`bash -n` + shellcheck clean; Serve is done by OpenClaw `gateway.tailscale.mode: serve`; restore/snapshot = M7 TODO; device-code login on first boot); not run yet
 - [ ] Ollama forwarder on 127.0.0.1 → laptop via `socks5h://127.0.0.1:1055`; logs `ollama_call`
 - [ ] OpenClaw config template for the container (single agent, minimal plugins, browser import off, dreaming off, failover off). **Written + validated locally Nov 13** (`config validate` ok, `doctor --lint` 3 info warnings, 4 plugins enabled); runtime in the container not verified
-- [ ] Cloud ChatGPT sign-in (browser flow, separate from laptop) and auth file persisted to bucket
-- [ ] Deploy as **Cloud Run Instance**; one cloud and one local reply through the deployed dashboard, visible in Cloud Logging
+- [ ] Cloud ChatGPT sign-in (browser flow, separate from laptop) and auth file persisted to bucket. **Sign-in done Nov 13** (instance SSH as `agent`, `Inference verified: openai/gpt-6-astra`); persistence to bucket = M7 (login lost on restart until then)
+- [ ] Deploy as **Cloud Run Instance**; one cloud and one local reply through the deployed dashboard, visible in Cloud Logging. **Cloud reply done Nov 13 09:29 UTC** (`evidence/2026-11-13-m2-cloud-reply.txt`); local reply pending the forwarder
 
 ## M3 Router (4–5 h) — see ROUTER_SPEC.md
 - [ ] Rules 1–6 with precedence, privacy keyword list in config

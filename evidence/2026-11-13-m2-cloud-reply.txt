@@ -1,0 +1,34 @@
+# M2: first cloud (ChatGPT) reply from the deployed Cloud Run Instance, Fri Nov 13 2026 ~1:30 AM PST
+# Image agent:2026-11-13c (sha256:bd3131dbcad7e7921131e83021246207daad2125accecac95127ab54c0d15705), 1 vCPU / 4 GiB.
+# Log lines read by the assistant from Cloud Logging (read-only). Emails redacted. No tokens or callback URLs.
+
+## Boot (a3-ops + gateway lines)
+09:05:51 tailscale-up  hostname=a3-cloud-agent ip=100.71.136.89   (same node as before: Tailscale state restored from the bucket)
+09:05:51 forwarder-missing (expected; M2 step 8)
+09:06:40 chatgpt-login-needed
+09:08:12 [gateway] loading configuration… / starting...
+09:09:21 [tailscale] serve enabled: https://a3-cloud-agent.tail9bf1e8.ts.net/ (WS via wss://a3-cloud-agent.tail9bf1e8.ts.net)
+09:09:22 isolation-report user=agent uid=10001 capEff=0000000000000000
+         listening=0.0.0.0%lo:47428,127.0.0.1:1055,127.0.0.1:18789,127.0.0.1:43457,[::1]:18789   (loopback only)
+09:09:44 [gateway] http server listening (4 plugins: a3-router, memory-core, ollama, openai; 83.0s)
+
+## Dashboard over Tailscale, no token (gateway.auth.allowTailscale + managed Serve)
+09:12:34 [ws] authenticated user connected conn=… user=<student tailscale login>
+
+## Cloud ChatGPT sign-in (student, browser flow over `gcloud beta run instances ssh`, as user agent; deploy/LOGIN.md)
+(device-code sign-in blocked by the USC workspace; tested by the student at 1:03 AM PST)
+CLI: Auth profile: openai:<usc account> (openai/oauth)
+09:18:04 [ws] ⇄ res ✓ models.authRefresh 22301ms        (running gateway refreshed the saved login)
+CLI (models auth activate): Inference verified: openai/gpt-6-astra
+CLI warnings "the running Gateway could not refresh them / run openclaw gateway restart": NOT acted on
+(restart would restart the container and lose the login until M7 snapshots exist).
+
+## The test turn (student, new dashboard chat): "Explain step by step why the sky is blue, in two sentences."
+09:29:12 {"component":"a3-router","kind":"route_decision","rule":"reasoning-heavy","target":"cloud","model":"openai/gpt-6-astra","requestId":"ad491ad0-c277-4079-bed9-7874a9816421"}
+09:29:12 [agent/embedded] [hooks] provider overridden to openai
+09:29:12 [agent/embedded] [hooks] model overridden to gpt-6-astra
+09:29:35 agent turn milestone runId=ad491ad0… milestone=context_assembled totalMs=24799
+09:29:39 agent turn milestone runId=ad491ad0… milestone=model_call_started totalMs=28705
+09:29:54 [provider-transport-fetch] [model-fetch] response provider=openai api=openclaw-openai-chatgpt-responses-transport model=gpt-6-astra status=200 elapsedMs=1748
+Reply (seen by the student): a correct two-sentence Rayleigh-scattering explanation.
+Wall time reported by the student: 1.54 min (most of it agent-side preparation on 1 vCPU, not the model call).
