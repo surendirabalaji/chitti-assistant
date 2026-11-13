@@ -1,0 +1,44 @@
+# M1 steps 1-3 verification, Thu Nov 12 19:00:55 PST 2026
+[core]
+account = <redacted-email>
+disable_usage_reporting = True
+project = chitti-assistant-a3
+[run]
+region = us-west1
+
+Your active configuration is: [chitti-a3]
+analyticshub.googleapis.com
+apptopology.googleapis.com
+artifactregistry.googleapis.com
+bigquery.googleapis.com
+bigqueryconnection.googleapis.com
+bigquerydatapolicy.googleapis.com
+bigquerydatatransfer.googleapis.com
+bigquerymigration.googleapis.com
+bigqueryreservation.googleapis.com
+bigquerystorage.googleapis.com
+billingbudgets.googleapis.com
+cloudapis.googleapis.com
+cloudtrace.googleapis.com
+containerregistry.googleapis.com
+dataform.googleapis.com
+dataplex.googleapis.com
+datastore.googleapis.com
+logging.googleapis.com
+monitoring.googleapis.com
+pubsub.googleapis.com
+run.googleapis.com
+secretmanager.googleapis.com
+servicemanagement.googleapis.com
+serviceusage.googleapis.com
+sql-component.googleapis.com
+storage-api.googleapis.com
+storage-component.googleapis.com
+storage.googleapis.com
+telemetry.googleapis.com
+177853625779-compute@developer.gserviceaccount.com
+a3-agent@chitti-assistant-a3.iam.gserviceaccount.com
+location: US-WEST1
+public_access_prevention: enforced
+uniform_bucket_level_access: true
+roles/logging.logWriter

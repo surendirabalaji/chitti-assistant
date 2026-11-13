@@ -1,0 +1,38 @@
+# M1 steps 4-6: Tailscale (laptop side), Nov 12 2026 evening PST
+# Source: student's terminal output pasted into the OpenCode session. No keys or emails included.
+
+$ tailscale version
+1.104.7
+  tailscale commit: fb3b9b2964ace04490fbd65d4f26a0eaf362131f
+
+$ tailscale status
+100.87.223.40  surendiras-macbook-air  <owner>  macOS  -   (tailnet tail9bf1e8.ts.net)
+
+# Admin console (student confirmed): MagicDNS on, HTTPS certificates enabled.
+# Policy saved with deny-by-default grants (allow-all removed); console policy test passed:
+#   src tag:a3-agent  accept 100.87.223.40:11434  deny 100.87.223.40:22, 100.87.223.40:18789
+# Auth key: reusable, non-ephemeral, tagged tag:a3-agent, 90-day expiry. Value never shown;
+# stored only in Secret Manager.
+
+$ gcloud secrets versions list tailscale-authkey --format='value(name,state)'
+1       enabled
+$ gcloud secrets get-iam-policy tailscale-authkey --format='value(bindings.role,bindings.members)'
+roles/secretmanager.secretAccessor      ['serviceAccount:a3-agent@chitti-assistant-a3.iam.gserviceaccount.com']
+
+$ tailscale serve --bg --tcp 11434 tcp://127.0.0.1:11434
+$ tailscale serve status
+|-- tcp://surendiras-macbook-air.tail9bf1e8.ts.net:11434 (tailnet only)
+|-- tcp://100.87.223.40:11434
+|-- tcp://[fd7a:115c:a1e0::901:dfea]:11434
+|--> tcp://127.0.0.1:11434
+
+$ curl ... http://surendiras-macbook-air.tail9bf1e8.ts.net:11434/api/tags
+via tailnet name: 403
+$ curl ... -H 'Host: 127.0.0.1:11434' http://surendiras-macbook-air.tail9bf1e8.ts.net:11434/api/tags
+tailnet name + Host rewritten: 200
+$ curl ... --max-time 3 http://<LAN IP>:11434/api/tags
+from LAN IP (should fail): 000
+
+# Finding: Ollama (127.0.0.1 bind) rejects requests whose Host header is not local (403).
+# The M2 forwarder must send Host: 127.0.0.1:11434. Do NOT set OLLAMA_HOST=0.0.0.0.
+# Not verified yet: the agent -> laptop path from a tag:a3-agent device (needs the M2 container).

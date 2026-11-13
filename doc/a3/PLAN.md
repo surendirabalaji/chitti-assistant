@@ -25,12 +25,12 @@ Tick boxes as work is **verified**, not just written. Effort ranges are estimate
 - [x] Inspect effective exec policy (`openclaw exec-policy show`) and record (Nov 12: full, no approvals)
 
 ## M1 Cloud foundation (2–3 h) — ask before each cloud command
-- [ ] GCP project, billing budget alert, region (us-west1 unless told otherwise)
-- [ ] Enable APIs: Cloud Run, Artifact Registry, Secret Manager, Cloud Storage, Cloud Logging
-- [ ] Service account for the instance (least privilege: bucket objectAdmin on one bucket, secretAccessor on named secrets, log writer)
-- [ ] Bucket for snapshots + Tailscale state
-- [ ] Tailscale: `tag:a3-agent`, grants (agent → laptop tcp:11434; members+shared → agent tcp:443), HTTPS certs + MagicDNS on, **reusable non-ephemeral** auth key → Secret Manager `tailscale-authkey`
-- [ ] Laptop: `tailscale serve` exposing Ollama `tcp:11434 -> 127.0.0.1:11434`
+- [x] GCP project `chitti-assistant-a3`, billing linked, budget alert $25 (50/90/100%), region us-west1 (Cloud Run Instances supported there per docs) (Nov 12)
+- [x] Enable APIs: Cloud Run, Artifact Registry, Secret Manager, Cloud Storage, Cloud Logging (+ billingbudgets) (Nov 12)
+- [x] Service account `a3-agent` (no keys): objectAdmin on the state bucket, secretAccessor on `tailscale-authkey`, project logWriter (Nov 12)
+- [x] Bucket `gs://chitti-assistant-a3-state` (us-west1, uniform access, public access prevention enforced) (Nov 12)
+- [x] Tailscale: `tag:a3-agent`, grants (agent → laptop tcp:11434; members+shared → agent tcp:443), policy test passes, HTTPS certs + MagicDNS on, **reusable non-ephemeral** auth key → Secret Manager `tailscale-authkey` (Nov 12)
+- [x] Laptop: `tailscale serve` exposing Ollama `tcp:11434 -> 127.0.0.1:11434` (Nov 12; tailnet Host header → 403, forwarder must send `Host: 127.0.0.1:11434`)
 
 ## M2 Vertical slice (4–6 h)
 - [ ] `deploy/package.json` + `package-lock.json` pinning openclaw 2026.10.9 (resolved with `--before`)

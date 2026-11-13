@@ -1,0 +1,40 @@
+// Tailnet policy for CSCI 599 A3 (chitti-assistant).
+// Copy of the policy saved in the Tailscale admin console on 2026-11-12 (console test passed).
+// Deny by default: only the grants below are allowed.
+// If the laptop's tailnet IP changes, update grant 3 and the test.
+{
+	// Only admins (the student) can create devices or auth keys with this tag.
+	"tagOwners": {
+		"tag:a3-agent": ["autogroup:admin"],
+	},
+
+	"grants": [
+		// 1. The owner's own devices keep full access to each other.
+		{"src": ["autogroup:member"], "dst": ["autogroup:self"], "ip": ["*"]},
+
+		// 2. The owner and graders (shared users) reach ONLY the agent's HTTPS dashboard.
+		{"src": ["autogroup:member", "autogroup:shared"], "dst": ["tag:a3-agent"], "ip": ["tcp:443"]},
+
+		// 3. The cloud agent reaches ONLY Ollama on the laptop (via tailscale serve).
+		{"src": ["tag:a3-agent"], "dst": ["100.87.223.40"], "ip": ["tcp:11434"]},
+	],
+
+	// Tailscale SSH: only the owner, only into their own devices, with re-auth (check mode).
+	"ssh": [
+		{
+			"action": "check",
+			"src":    ["autogroup:member"],
+			"dst":    ["autogroup:self"],
+			"users":  ["autogroup:nonroot", "root"],
+		},
+	],
+
+	// Checked on every save; the console rejects the policy if any test fails.
+	"tests": [
+		{
+			"src":    "tag:a3-agent",
+			"accept": ["100.87.223.40:11434"],
+			"deny":   ["100.87.223.40:22", "100.87.223.40:18789"],
+		},
+	],
+}

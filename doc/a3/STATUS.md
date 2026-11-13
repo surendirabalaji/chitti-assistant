@@ -1,6 +1,6 @@
 # Status
 
-Last updated: **Wed Nov 11, 2026, ~1:10 PM PST** (handoff from the planning conversation to OpenCode).
+Last updated: **Thu Nov 12, 2026, evening PST** (M1 cloud foundation done).
 
 This file wins over every other doc when they conflict. Update it at the end of every work session.
 
@@ -8,7 +8,7 @@ This file wins over every other doc when they conflict. Update it at the end of 
 
 Milestone **M0 (feasibility)** is nearly done. F1–F4 pass. F3 passed with manual `/model` switching; automatic switching and F5 need the router plugin.
 
-**Lesson A1 done Nov 12** (Vitest 5.1.0 pinned, `npm test` passes; see PROCESS_LOG). **Lesson A2 done Nov 12** (`decide()` one rule; 39 tests pass, 6 todo). **Lesson A3 done Nov 12** (by the assistant at the student's request; findings under Verified facts → Plugin API). **Lesson A4 done Nov 12, F3 automatic switching passes** (see evidence). **A5 code done (assistant-written at the student's request), F5 passes, exec policy recorded.** Open: student confirms the route_decision lines in the gateway terminal. Telegram bot created and verified on the laptop. **Wednesday work done except the Gmail test account (student).** **Next task:** Thursday: M1 cloud foundation (ask before every cloud command). Then Lesson A6 (the student writes the router hands-on: A1–A5 produce the minimal plugin), then finish F3 (automatic switching) and F5 (cron turns).
+**Lesson A1 done Nov 12** (Vitest 5.1.0 pinned, `npm test` passes; see PROCESS_LOG). **Lesson A2 done Nov 12** (`decide()` one rule; 39 tests pass, 6 todo). **Lesson A3 done Nov 12** (by the assistant at the student's request; findings under Verified facts → Plugin API). **Lesson A4 done Nov 12, F3 automatic switching passes** (see evidence). **A5 code done (assistant-written at the student's request), F5 passes, exec policy recorded.** Open: student confirms the route_decision lines in the gateway terminal. Telegram bot created and verified on the laptop. **Wednesday work done except the Gmail test account (student).** **M1 cloud foundation done Nov 12** (see "Cloud foundation" below). **Next task:** M2 vertical slice (lockfile, Dockerfile, startup script, forwarder with Host rewrite, container config, deploy; ask before every cloud command). Then Lesson A6 (the student writes the router hands-on: A1–A5 produce the minimal plugin), then finish F3 (automatic switching) and F5 (cron turns).
 
 Working style: **teaching mode** (see AGENTS.md). The student writes core code; the assistant explains, hints, and reviews.
 
@@ -53,6 +53,21 @@ Working style: **teaching mode** (see AGENTS.md). The student writes core code; 
 | F5 Cron turns route through the plugin | ✅ Nov 12 16:50: test job `a3-f5-test` (disabled, isolated, no-deliver) run with `openclaw cron run <id>` → `[hooks] provider overridden to openai`; run ok on openai/gpt-6-astra. The heartbeat (16:43:50) also passes through the hook. **Unexplained:** the short cron message routed to cloud, so the cron `event.prompt` is probably wrapped/longer than the message (not verified) | `evidence/2026-11-12-a5-f5-cli-turns.txt` |
 | A5 decision log line | ✅ Nov 12 17:13–17:14: lines on gateway stdout start with `{` (no prefix); `requestId` = OpenClaw `runId` (so `ctx.runId` is populated in `before_model_resolve`); no message text. Heartbeat → `default-cloud`; Telegram "hi" → `simple-task` local | `evidence/2026-11-12-a5-telegram-route-log.txt` |
 | Telegram (laptop) | ✅ `@chitti_assistant_bot`, tokenFile `~/.config/chitti/telegram-bot-token` (chmod 600, outside repo), `dmPolicy allowlist` + owner's numeric ID, groups blocked, BotFather joingroups disabled (student). DM → Gemma → reply delivered (~22 s). **Disable on the laptop before the cloud deploy** (one poller per token) | same file |
+
+### Cloud foundation (M1, Nov 12)
+| Item | Value / state | Evidence |
+|---|---|---|
+| gcloud | separate local configuration `chitti-a3` (the old `default` config points at an unrelated project) | `evidence/2026-11-12-m1-steps1-3.txt` |
+| Project | `chitti-assistant-a3`, billing linked, budget **$25** monthly, alerts 50/90/100% (alert only, not a cap) | same + console (student) |
+| Region | `us-west1`. Cloud Run Instances are available in every Cloud Run region except europe-west1, us-central1, us-east1 (cloud.google.com/run/docs/locations, read Nov 12). CLI group: `gcloud beta run instances` (SDK 587.0.0) | |
+| APIs | run, artifactregistry, secretmanager, storage, logging, billingbudgets (plus Google's default set, unused) | same |
+| Service account | `a3-agent@chitti-assistant-a3.iam.gserviceaccount.com`, **no user-managed keys**; project role only `roles/logging.logWriter`; `roles/storage.objectAdmin` on the bucket; `roles/secretmanager.secretAccessor` on `tailscale-authkey` | same |
+| Bucket | `gs://chitti-assistant-a3-state`, us-west1, uniform access, public access prevention enforced, default soft delete | same |
+| Tailscale | tailnet `tail9bf1e8.ts.net`; laptop `surendiras-macbook-air` = `100.87.223.40` (client 1.104.7); MagicDNS + HTTPS on; deny-by-default policy (3 grants + 1 test, allow-all removed) | `evidence/2026-11-12-m1-tailscale.txt` |
+| Auth key | reusable, non-ephemeral, tag `tag:a3-agent`, 90 days, only in Secret Manager `tailscale-authkey` (version 1). **Revoke after grading** | same |
+| Laptop serve | `tailscale serve --bg --tcp 11434 tcp://127.0.0.1:11434` (tailnet only); undo with `tailscale serve reset` | same |
+
+**M1 finding: Ollama rejects the tailnet Host header.** Through serve, `Host: surendiras-macbook-air.tail9bf1e8.ts.net:11434` → **403**; same path with `Host: 127.0.0.1:11434` → 200; LAN IP → no connection. The M2 forwarder must rewrite `Host` to `127.0.0.1:11434`. Never fix this with `OLLAMA_HOST=0.0.0.0`. Not verified yet: the agent → laptop path from a `tag:a3-agent` node (needs the container). Also: the gcloud Cloud Billing API sometimes returns 429 on gcloud's shared quota project; fix with `gcloud config set billing/quota_project chitti-assistant-a3` (needs `cloudbilling.googleapis.com` enabled) if it recurs.
 
 ### Plugin API (OpenClaw 2026.10.9, read from the installed package, Nov 12)
 Sources: `$(npm root -g)/openclaw/dist/config-contracts-DzLaG7FV.d.ts` (types), `dist/embedded-agent-DoEPu8ye.mjs` (`resolveHookModelSelection`, the runtime code), and the bundled docs under `openclaw/docs/plugins/` (`hooks.md`, `hooks/reference.md`, `building-plugins.md`, `manifest.md`, `cli/plugins/install.md`).
@@ -121,5 +136,5 @@ Goal: prove **automatic** per-turn switching and logging, then extend.
 
 ## Open items
 - ~~Piazza question on held semantics~~ **Closed (Nov 11):** student decided not to ask. Held semantics are a stated assumption in DESIGN.md (reply + log, nothing queued, user resends); README must state it.
-- Throwaway Gmail account, Telegram bot, ClawHub account: not created yet.
-- GCP project not created yet.
+- Throwaway Gmail account and ClawHub account: not created yet. (Telegram bot done Nov 12.)
+- ~~GCP project not created yet.~~ Done Nov 12 (M1).
