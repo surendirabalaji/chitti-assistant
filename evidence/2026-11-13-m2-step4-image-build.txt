@@ -1,0 +1,47 @@
+# M2 step 4: local image build + smoke test, Fri Nov 13 2026 ~12:40 AM PST
+# Run by the assistant (OpenCode) on the student's Mac with Docker Desktop 29.2.1. No cloud commands. No secrets used
+# (the gateway token below was a throwaway dummy for the local smoke test, shown as <token>).
+
+$ docker build --progress=plain --platform linux/amd64 -f deploy/Dockerfile -t chitti-a3-agent:dev .
+build exit: 0
+#7 [ 3/13] ADD --checksum=sha256:e56693ff74a64f2591b7e819c280635a100aae1ddfb0ef058fcd052b7cd8d16c https://pkgs.tailscale.com/stable/tailscale_1.104.7_amd64.tgz  -> DONE
+#15 [ 8/13] RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
+#15 npm warn deprecated node-domexception@1.0.0
+#15 added 344 packages in 14s
+#15 npm warn using --force Recommended protections disabled.     (from "npm cache clean --force")
+occurrences of "install-scripts" in the build log: 0
+
+$ docker image inspect chitti-a3-agent:dev
+id=sha256:b0a16fdf285d83c6065d89feaf9067983a856a04f51614e534c4559710e45d0e
+arch=amd64 os=linux user=agent size=336615382 entrypoint=["/usr/bin/tini","--","/app/startup.sh"]
+
+$ docker run --rm --entrypoint sh chitti-a3-agent:dev -c '...'
+uid=10001(agent) gid=10001(agent) groups=10001(agent)
+x86_64 / node v24.22.1 / OpenClaw 2026.10.9 (8b18b55) / tailscale 1.104.7 / tailscaled 1.104.7
+/app/router: openclaw.plugin.json package.json src   /app/router/src: decide.ts index.ts log.ts plugin.ts
+native binaries present: @openclaw/fs-safe-linux-x64-gnu, @koromix/koffi-linux-x64, @lydell/node-pty-linux-x64, @ubjs/node-linux-x64-gnu, @trycua/cua-driver-linux-x64-gnu
+touch /app/openclaw/x -> Permission denied ; touch /app/router/x -> Permission denied
+/var/run/tailscale writable ; /mnt/state writable
+env vars matching key|token|secret in the image: 0
+
+$ (in container, template copied to $OPENCLAW_CONFIG_PATH, OPENCLAW_GATEWAY_TOKEN=<token>)
+openclaw config validate --json -> {"valid":true,"path":"/home/agent/.openclaw/openclaw.json","warnings":[]}
+node -e 'require("koffi")' -> koffi ok ; esbuild 0.28.2
+openclaw plugins list --enabled -> a3-router, memory-core, ollama, openai
+
+$ timeout 45 openclaw gateway run --tailscale off      (Tailscale Serve switched off for this local test only)
+08:38:57 [gateway] loading configuration…
+08:39:01 [secrets] gateway.auth.token is active. gateway.auth.mode is "token".
+08:39:03 [gateway] agent model: openai/gpt-6-astra (thinking=medium, fast=off)
+08:39:03 [gateway] http server listening (4 plugins: a3-router, memory-core, ollama, openai; 5.8s)
+08:39:03 [gateway] log file: /tmp/openclaw/openclaw-2026-11-13.log
+08:39:04 [gateway] ready
+08:39:04 [heartbeat] disabled
+listening at 35 s: 127.0.0.1:18789, [::1]:18789 (nothing else)
+all processes owned by user "agent"
+08:39:40 [gateway] received SIGTERM; shutting down
+08:39:40 [shutdown] completed cleanly in 167ms
+gateway exit: 124 (killed by the 45 s timeout, as intended)
+
+# Not tested here (needs the cloud): startup.sh end to end, tailscaled + tailscale up, OpenClaw-managed
+# Tailscale Serve, bucket mount, ChatGPT device-code login, any model call, the forwarder (not written yet).

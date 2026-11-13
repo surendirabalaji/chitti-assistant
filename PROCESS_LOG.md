@@ -83,3 +83,7 @@ _To be written by the student._
 - Facts checked first (read-only): `gcloud beta run instances deploy --help` (volumes, secrets, `--no-default-url`, startup probe, restart policy); Tailscale 1.104.7 amd64 tarball sha256 from pkgs.tailscale.com; how OpenClaw runs managed Serve (`dist/tailscale-BvelItYj.mjs`: `tailscale serve --yes --bg=false`, default socket); `openclaw models auth login --help`, `config get --help`, `gateway run --help`.
 - Verification: `bash -n` ok; shellcheck (koalaman/shellcheck:stable container) found one SC2015 note, fixed, then clean; `docker build --check` "no warnings found". The image was not built and nothing was run in the cloud.
 - Not verified: managed Serve with userspace tailscaled; device-code login without a TTY; gcsfuse uid/gid mount options; whether the instance needs a startup probe port.
+
+### 2026-11-13: M2 step 4 (local image build), run by the assistant
+- At the student's request ("Proceed with step 4"), the assistant ran `docker build --platform linux/amd64 -f deploy/Dockerfile -t chitti-a3-agent:dev .` on the student's Docker Desktop (exit 0) and smoke-tested the image locally: user/versions/files, native modules, read-only code dirs, `config validate`, enabled plugins, and a 45-second `openclaw gateway run --tailscale off` (ready, 4 plugins, loopback only, clean shutdown). No cloud command, no real secret (a dummy gateway token).
+- Result recorded in STATUS.md and `evidence/2026-11-13-m2-step4-image-build.txt` (assembled by the assistant from its own command output). `startup.sh` itself has not run yet.
