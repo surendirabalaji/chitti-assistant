@@ -1,0 +1,19 @@
+{
+  "name": "chitti-a3-agent-image",
+  "private": true,
+  "description": "Pins the OpenClaw version installed in the Cloud Run container. Install with `npm ci` only.",
+  "type": "module",
+  "engines": {
+    "node": "24.22.1"
+  },
+  "dependencies": {
+    "openclaw": "2026.10.9"
+  },
+  "allowScripts": {
+    "openclaw@2026.10.9": true,
+    "esbuild@0.28.2": true,
+    "koffi@3.3.2": true,
+    "protobufjs@7.6.6": true,
+    "@google/genai@2.27.0": true
+  }
+}

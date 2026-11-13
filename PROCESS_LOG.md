@@ -70,3 +70,10 @@ _To be written by the student._
 - Student ran `tailscale serve --bg --tcp 11434 tcp://127.0.0.1:11434`. Curl tests: tailnet name → 403, Host rewritten to 127.0.0.1 → 200, LAN IP → 000. Finding recorded in STATUS.md: the M2 forwarder must rewrite Host. Evidence: `evidence/2026-11-12-m1-tailscale.txt` (assembled by the assistant from the student's pasted output).
 - Not verified: the agent → laptop path from a tagged node (needs the M2 container).
 - At the student's request ("write it"), the assistant saved a copy of the console policy as `deploy/tailscale-policy.hujson` (no secrets; tailnet IP and tag names only).
+
+### 2026-11-12/13: M2 steps 1–2 (lockfile + container config), generated and explained
+- Student chose: push M2 tonight, local Docker Desktop build, assistant writes the generated pieces under deploy/ ("Yes, write them"), forwarder stays student-written (guided).
+- Assistant wrote `deploy/package.json` (openclaw 2026.10.9 exact). Student started Docker Desktop and generated `deploy/package-lock.json` inside a linux/amd64 `node:24.22.1-bookworm-slim` container with `--before=2026-10-30`. A first attempt with a bind mount failed (macOS privacy blocks Docker Desktop from ~/Desktop); the assistant gave a stdin/stdout pipe instead. Student pasted checks: openclaw 2026.10.9, 36 linux-x64 entries.
+- npm 11.19.1 warned about 5 unapproved install scripts; the assistant read npm's bundled docs (contradictory: "blocked by default" vs "advisory"), reviewed the 5 packages and added version-pinned `allowScripts` to package.json. Effect in `npm ci`: not verified yet.
+- A research subagent (OpenCode explore agent) read the installed OpenClaw 2026.10.9 docs and config schema (read-only) for the container keys; findings in STATUS.md "Container build (M2)".
+- Assistant wrote `deploy/openclaw.template.json5` and validated it in a throwaway state dir: `openclaw config validate` valid; `openclaw doctor --lint` found the missing `agentRuntime.id: "openclaw"` for gpt-6-astra (fixed); 4 plugins enabled. Runtime behaviour in the container not verified.

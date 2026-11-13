@@ -1,0 +1,85 @@
+// OpenClaw config for the Cloud Run container (CSCI 599 A3, chitti-assistant).
+// Copied to $OPENCLAW_CONFIG_PATH by deploy/startup.sh on every boot; the `auth`
+// block written by the ChatGPT login is carried over (see startup.sh).
+// Keys verified against the installed OpenClaw 2026.10.9 schema + bundled docs (Nov 12).
+// No secrets in this file: the gateway token comes from an env var set at boot.
+{
+  gateway: {
+    mode: "local",                 // gateway refuses to start unless "local"
+    port: 18789,
+    bind: "loopback",              // 127.0.0.1 inside the container only
+    auth: {
+      mode: "token",
+      // SecretRef: read from the env var at runtime, never written to disk.
+      token: { source: "env", provider: "default", id: "OPENCLAW_GATEWAY_TOKEN" },
+      allowTailscale: true,        // tailnet users identified by Tailscale Serve headers skip the token
+    },
+    tailscale: { mode: "serve" },  // OpenClaw runs `tailscale serve` (HTTPS :443 -> gateway)
+    controlUi: {
+      enabled: true,
+      allowedOrigins: ["https://a3-cloud-agent.tail9bf1e8.ts.net"],
+    },
+    terminal: { enabled: false },  // no shell terminal in the dashboard
+  },
+
+  // Browser plugin is not in plugins.allow; also switch it and cookie import off explicitly.
+  browser: { enabled: false, allowSystemProfileImport: false },
+
+  discovery: { mdns: { mode: "off" } },   // no Bonjour broadcasting in the cloud
+  update: { checkOnStart: false },        // pinned version: no update checks or auto-apply
+
+  agents: {
+    defaults: {
+      model: {
+        primary: "openai/gpt-6-astra",    // no "@profile" suffix (A4 finding)
+        fallbacks: [],                    // no automatic failover; the router decides
+      },
+      // Run ChatGPT on OpenClaw's own agent runtime (same as the laptop). Without this,
+      // doctor reports the model wants the Codex runtime, whose plugin is not enabled.
+      models: {
+        "openai/gpt-6-astra": { agentRuntime: { id: "openclaw" } },
+      },
+      utilityModel: "",                   // disable the separate utility route (gpt-5.6-luna got 403)
+      heartbeat: { every: "0m" },         // no recurring heartbeat turns; proactive jobs are explicit cron (M6)
+    },
+  },
+
+  models: {
+    providers: {
+      ollama: {
+        baseUrl: "http://127.0.0.1:11435", // the forwarder (M2 step 8) -> Tailscale SOCKS5 -> laptop
+        apiKey: "ollama-local",            // marker value, not a secret (loopback provider)
+        api: "ollama",
+        timeoutSeconds: 300,
+        models: [
+          {
+            id: "gemma4-a3:e2b",
+            name: "gemma4-a3:e2b",
+            input: ["text"],
+            contextTokens: 32768,
+            params: { num_ctx: 32768, think: false },
+          },
+        ],
+      },
+    },
+  },
+
+  plugins: {
+    // Exclusive allowlist: everything else (browser, github, cua-computer, bonjour, ...) stays off.
+    allow: ["a3-router", "openai", "ollama", "memory-core"],
+    load: { paths: ["/app/router"] },
+    entries: {
+      "a3-router": {
+        enabled: true,
+        hooks: { allowConversationAccess: true },   // required for before_model_resolve
+      },
+      "memory-core": {
+        config: { dreaming: { enabled: false } },   // no background MEMORY.md rewrites
+      },
+    },
+  },
+
+  tools: {
+    exec: { mode: "ask" },         // allowlist + human approval on every miss (allowlist starts empty)
+  },
+}

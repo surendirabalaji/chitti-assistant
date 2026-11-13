@@ -1,6 +1,6 @@
 # Status
 
-Last updated: **Thu Nov 12, 2026, evening PST** (M1 cloud foundation done).
+Last updated: **Fri Nov 13, 2026, ~12:30 AM PST** (M2 steps 1–2 done).
 
 This file wins over every other doc when they conflict. Update it at the end of every work session.
 
@@ -8,7 +8,7 @@ This file wins over every other doc when they conflict. Update it at the end of 
 
 Milestone **M0 (feasibility)** is nearly done. F1–F4 pass. F3 passed with manual `/model` switching; automatic switching and F5 need the router plugin.
 
-**Lesson A1 done Nov 12** (Vitest 5.1.0 pinned, `npm test` passes; see PROCESS_LOG). **Lesson A2 done Nov 12** (`decide()` one rule; 39 tests pass, 6 todo). **Lesson A3 done Nov 12** (by the assistant at the student's request; findings under Verified facts → Plugin API). **Lesson A4 done Nov 12, F3 automatic switching passes** (see evidence). **A5 code done (assistant-written at the student's request), F5 passes, exec policy recorded.** Open: student confirms the route_decision lines in the gateway terminal. Telegram bot created and verified on the laptop. **Wednesday work done except the Gmail test account (student).** **M1 cloud foundation done Nov 12** (see "Cloud foundation" below). **Next task:** M2 vertical slice (lockfile, Dockerfile, startup script, forwarder with Host rewrite, container config, deploy; ask before every cloud command). Then Lesson A6 (the student writes the router hands-on: A1–A5 produce the minimal plugin), then finish F3 (automatic switching) and F5 (cron turns).
+**Lesson A1 done Nov 12** (Vitest 5.1.0 pinned, `npm test` passes; see PROCESS_LOG). **Lesson A2 done Nov 12** (`decide()` one rule; 39 tests pass, 6 todo). **Lesson A3 done Nov 12** (by the assistant at the student's request; findings under Verified facts → Plugin API). **Lesson A4 done Nov 12, F3 automatic switching passes** (see evidence). **A5 code done (assistant-written at the student's request), F5 passes, exec policy recorded.** Open: student confirms the route_decision lines in the gateway terminal. Telegram bot created and verified on the laptop. **Wednesday work done except the Gmail test account (student).** **M1 cloud foundation done Nov 12** (see "Cloud foundation" below). **M2 steps 1–2 done Nov 13** (lockfile + container config template, see "Container build (M2)"). **Next task:** M2 step 3: Dockerfile + `startup.sh` (generated and explained, student approved writing them), then local amd64 build with Docker Desktop, Artifact Registry + deploy (ask first), device-code ChatGPT login, then the forwarder (student writes, guided). Then Lesson A6 (the student writes the router hands-on: A1–A5 produce the minimal plugin), then finish F3 (automatic switching) and F5 (cron turns).
 
 Working style: **teaching mode** (see AGENTS.md). The student writes core code; the assistant explains, hints, and reviews.
 
@@ -68,6 +68,24 @@ Working style: **teaching mode** (see AGENTS.md). The student writes core code; 
 | Laptop serve | `tailscale serve --bg --tcp 11434 tcp://127.0.0.1:11434` (tailnet only); undo with `tailscale serve reset` | same |
 
 **M1 finding: Ollama rejects the tailnet Host header.** Through serve, `Host: surendiras-macbook-air.tail9bf1e8.ts.net:11434` → **403**; same path with `Host: 127.0.0.1:11434` → 200; LAN IP → no connection. The M2 forwarder must rewrite `Host` to `127.0.0.1:11434`. Never fix this with `OLLAMA_HOST=0.0.0.0`. Not verified yet: the agent → laptop path from a `tag:a3-agent` node (needs the container). Also: the gcloud Cloud Billing API sometimes returns 429 on gcloud's shared quota project; fix with `gcloud config set billing/quota_project chitti-assistant-a3` (needs `cloudbilling.googleapis.com` enabled) if it recurs.
+
+### Container build (M2, Nov 12–13)
+| Item | State | Notes |
+|---|---|---|
+| `deploy/package.json` | openclaw `2026.10.9` exact; `engines.node 24.22.1`; `allowScripts` pinned: openclaw@2026.10.9, esbuild@0.28.2, koffi@3.3.2, protobufjs@7.6.6, @google/genai@2.27.0 | npm 11.19.1 docs contradict each other on whether unapproved dependency install scripts are blocked or only warned; pinned approvals make it explicit. **Check: `npm ci` in the build prints no `install-scripts` warning** |
+| `deploy/package-lock.json` | generated inside `node:24.22.1-bookworm-slim` linux/amd64 (`npm install --package-lock-only --before=2026-10-30`, stdin/stdout pipe because Docker Desktop has no macOS permission for ~/Desktop); 418 packages with integrity; 36 `linux-x64` entries | base image digest `sha256:be8204d4bd327363357f532187b752ff62759c31bedf98e9e18fc08c9cbd605c` (pin in Dockerfile). `npm audit`: 29 advisories (25 moderate, 4 high) in transitive deps: remaining risk, do **not** `npm audit fix` |
+| `deploy/openclaw.template.json5` | `openclaw config validate` → valid; `doctor --lint` → only info warnings (heartbeat monitor, device-pair, browser import now disabled); `plugins list --enabled` → a3-router, memory-core, ollama, openai | validated in a throwaway state dir with the router path substituted. Lint caught a real bug: `openai/gpt-6-astra` needs `agents.defaults.models["openai/gpt-6-astra"].agentRuntime.id: "openclaw"` (otherwise Codex runtime, plugin absent) |
+| Docker Desktop | 29.2.1, Rosetta amd64 emulation, ~4 GB VM (student) | `docker run -v ~/Desktop/...` fails (macOS privacy); `docker build` from the terminal is unaffected |
+
+**Config facts verified from the installed 2026.10.9 docs/schema (Nov 12, research subagent):**
+- **ChatGPT OAuth credentials are in SQLite**, not a JSON file: `$OPENCLAW_STATE_DIR/agents/main/agent/openclaw-agent.sqlite` (`auth_profile_store`) + `state/openclaw.sqlite`. "Auth file copied to bucket on change" (DESIGN/M7) must become a SQLite-safe backup (`openclaw backup` or the SQLite backup API). Profile metadata goes in `auth.profiles` in openclaw.json.
+- Headless login: `openclaw models auth login --provider openai --method device-code` (docs `providers/openai/authentication.md`).
+- `gateway.auth.allowTailscale` only works with OpenClaw-managed Serve (`gateway.tailscale.mode: "serve"`); identity headers verified with `tailscale whois`. `gateway.tailscale.resetOnExit` was retired. Whether managed Serve works with userspace `tailscaled`: **not verified**.
+- Exec approvals are stored in `state/openclaw.sqlite`; the effective policy is the stricter of `tools.exec.*` and the store. `tools.exec.mode` enum: deny|allowlist|ask|auto|full.
+- No switch disables dashboard title generation; `utilityModel: ""` disables the utility route (titles then use the session model).
+- `hooks.internal.entries.session-memory.enabled` controls the /new memory writer (left on; README must mention it).
+- Default log file `/tmp/openclaw/openclaw-YYYY-MM-DD.log` besides console. `gateway run` may rewrite the config (auto-migration, `.bak`).
+- Fallback: with `fallbacks: []` the chain is the primary only, but whether an Ollama failure retries on the configured primary (ChatGPT) is **not verified**: test with Ollama stopped (matters for the held policy).
 
 ### Plugin API (OpenClaw 2026.10.9, read from the installed package, Nov 12)
 Sources: `$(npm root -g)/openclaw/dist/config-contracts-DzLaG7FV.d.ts` (types), `dist/embedded-agent-DoEPu8ye.mjs` (`resolveHookModelSelection`, the runtime code), and the bundled docs under `openclaw/docs/plugins/` (`hooks.md`, `hooks/reference.md`, `building-plugins.md`, `manifest.md`, `cli/plugins/install.md`).
