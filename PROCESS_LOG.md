@@ -77,3 +77,9 @@ _To be written by the student._
 - npm 11.19.1 warned about 5 unapproved install scripts; the assistant read npm's bundled docs (contradictory: "blocked by default" vs "advisory"), reviewed the 5 packages and added version-pinned `allowScripts` to package.json. Effect in `npm ci`: not verified yet.
 - A research subagent (OpenCode explore agent) read the installed OpenClaw 2026.10.9 docs and config schema (read-only) for the container keys; findings in STATUS.md "Container build (M2)".
 - Assistant wrote `deploy/openclaw.template.json5` and validated it in a throwaway state dir: `openclaw config validate` valid; `openclaw doctor --lint` found the missing `agentRuntime.id: "openclaw"` for gpt-6-astra (fixed); 4 plugins enabled. Runtime behaviour in the container not verified.
+
+### 2026-11-13: M2 step 3 (Dockerfile + startup script), generated and explained
+- At the student's request ("proceed with step 3 and finish it"), the assistant wrote `deploy/Dockerfile`, `deploy/startup.sh` and the allowlist `.dockerignore`.
+- Facts checked first (read-only): `gcloud beta run instances deploy --help` (volumes, secrets, `--no-default-url`, startup probe, restart policy); Tailscale 1.104.7 amd64 tarball sha256 from pkgs.tailscale.com; how OpenClaw runs managed Serve (`dist/tailscale-BvelItYj.mjs`: `tailscale serve --yes --bg=false`, default socket); `openclaw models auth login --help`, `config get --help`, `gateway run --help`.
+- Verification: `bash -n` ok; shellcheck (koalaman/shellcheck:stable container) found one SC2015 note, fixed, then clean; `docker build --check` "no warnings found". The image was not built and nothing was run in the cloud.
+- Not verified: managed Serve with userspace tailscaled; device-code login without a TTY; gcsfuse uid/gid mount options; whether the instance needs a startup probe port.

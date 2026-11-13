@@ -1,0 +1,9 @@
+# Allowlist: the Docker build context gets ONLY these files (no .git, .env, evidence, docs, node_modules).
+*
+!deploy/package.json
+!deploy/package-lock.json
+!deploy/openclaw.template.json5
+!deploy/startup.sh
+!router/package.json
+!router/openclaw.plugin.json
+!router/src/
