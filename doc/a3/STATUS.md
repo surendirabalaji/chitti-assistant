@@ -8,7 +8,7 @@ This file wins over every other doc when they conflict. Update it at the end of 
 
 Milestone **M0 (feasibility)** is nearly done. F1–F4 pass. F3 passed with manual `/model` switching; automatic switching and F5 need the router plugin.
 
-**Lesson A1 done Nov 12** (Vitest 5.1.0 pinned, `npm test` passes; see PROCESS_LOG). **Lesson A2 done Nov 12** (`decide()` one rule; 39 tests pass, 6 todo). **Lesson A3 done Nov 12** (by the assistant at the student's request; findings under Verified facts → Plugin API). **Next task:** **Lesson A4** (first plugin) in `doc/a3/LEARNING_PATH.md` (the student writes the router hands-on: A1–A5 produce the minimal plugin), then finish F3 (automatic switching) and F5 (cron turns).
+**Lesson A1 done Nov 12** (Vitest 5.1.0 pinned, `npm test` passes; see PROCESS_LOG). **Lesson A2 done Nov 12** (`decide()` one rule; 39 tests pass, 6 todo). **Lesson A3 done Nov 12** (by the assistant at the student's request; findings under Verified facts → Plugin API). **Lesson A4 done Nov 12, F3 automatic switching passes** (see evidence). **A5 code done (assistant-written at the student's request), F5 passes, exec policy recorded.** Open: student confirms the route_decision lines in the gateway terminal. Telegram bot created and verified on the laptop. **Wednesday work done except the Gmail test account (student).** **Next task:** Thursday: M1 cloud foundation (ask before every cloud command). Then Lesson A6 (the student writes the router hands-on: A1–A5 produce the minimal plugin), then finish F3 (automatic switching) and F5 (cron turns).
 
 Working style: **teaching mode** (see AGENTS.md). The student writes core code; the assistant explains, hints, and reviews.
 
@@ -49,7 +49,10 @@ Working style: **teaching mode** (see AGENTS.md). The student writes core code; 
 | F2 ChatGPT login | ✅ onboarding "Inference verified: openai/gpt-6-astra", replied in 4.9 s; dashboard replies | onboarding output |
 | F3 Model switching (manual) | ✅ Same chat: ChatGPT recalled Gemma's turn; Gemma recalled "Bluebird" from ChatGPT's turn; ChatGPT named `gemma4-a3:e2b via Ollama` as previous model | 3 screenshots, Nov 11 1:06–1:07 PM |
 | F4 Gemma realism | ✅ E2B, CONTEXT 32768, 100% GPU (MLX), 7.4–7.6 GB; full agent turn with workspace file listing in **21 s**; miscounted files (said 5, listed 6) | `ollama ps`, chat |
-| F5 Cron turns route through the plugin | ⏳ needs plugin | — |
+| F3 Automatic switching (plugin) | ✅ Nov 12 4:21 PM: fresh chat, no `/model`: "what is 12 times 9?" → `[hooks] provider overridden to ollama` / `gemma4-a3:e2b`; "explain step by step…" → `openai` / `gpt-6-astra`. Gemma loaded in `ollama ps` at that time; turn-2 prompt-cache line shows `model(ollama/gemma4-a3:e2b -> openai/gpt-6-astra)` | `evidence/2026-11-12-a4-auto-switch.txt` + screenshot 4.22.51 PM |
+| F5 Cron turns route through the plugin | ✅ Nov 12 16:50: test job `a3-f5-test` (disabled, isolated, no-deliver) run with `openclaw cron run <id>` → `[hooks] provider overridden to openai`; run ok on openai/gpt-6-astra. The heartbeat (16:43:50) also passes through the hook. **Unexplained:** the short cron message routed to cloud, so the cron `event.prompt` is probably wrapped/longer than the message (not verified) | `evidence/2026-11-12-a5-f5-cli-turns.txt` |
+| A5 decision log line | ✅ Nov 12 17:13–17:14: lines on gateway stdout start with `{` (no prefix); `requestId` = OpenClaw `runId` (so `ctx.runId` is populated in `before_model_resolve`); no message text. Heartbeat → `default-cloud`; Telegram "hi" → `simple-task` local | `evidence/2026-11-12-a5-telegram-route-log.txt` |
+| Telegram (laptop) | ✅ `@chitti_assistant_bot`, tokenFile `~/.config/chitti/telegram-bot-token` (chmod 600, outside repo), `dmPolicy allowlist` + owner's numeric ID, groups blocked, BotFather joingroups disabled (student). DM → Gemma → reply delivered (~22 s). **Disable on the laptop before the cloud deploy** (one poller per token) | same file |
 
 ### Plugin API (OpenClaw 2026.10.9, read from the installed package, Nov 12)
 Sources: `$(npm root -g)/openclaw/dist/config-contracts-DzLaG7FV.d.ts` (types), `dist/embedded-agent-DoEPu8ye.mjs` (`resolveHookModelSelection`, the runtime code), and the bundled docs under `openclaw/docs/plugins/` (`hooks.md`, `hooks/reference.md`, `building-plugins.md`, `manifest.md`, `cli/plugins/install.md`).
@@ -71,6 +74,12 @@ Sources: `$(npm root -g)/openclaw/dist/config-contracts-DzLaG7FV.d.ts` (types), 
 | `before_agent_reply` (for A8) | event `{ cleanedBody: string }` (the prepared run prompt, may contain channel context); result `{ handled: boolean; reply?: ReplyPayload; reason?: string }`; option `eligibleTriggers` |
 | Result observation (for A9) | `model_call_ended`: `runId, callId, provider, model, durationMs, outcome: "completed"\|"error", errorCategory?, failureKind?`; `llm_output` and `agent_end` are also available |
 
+**A4 finding (Nov 12, 4:13 PM): auth-profile pin blocks hook switching.** The first A4 chat test failed with `Auth profile "openai:setup-…" is not configured for ollama`. The hook *did* fire (the provider was switched to ollama). Cause: onboarding set `agents.defaults.model` to `openai/gpt-6-astra@openai:setup-<id>`. The `@profile` suffix is a **user auth pin** (docs `concepts/model-failover.md`), and the dashboard session stored `gpt-6-astra@openai:setup-…`. `prepareAgentRuntimeAuth` (`dist/prepare-auth-*.mjs`) enforces a user-pinned profile against the *hook-selected* provider and throws. The docs say an incompatible pin is cleared "when the selected provider changes", but that doesn't happen on the hook path. **Fix:** default model without `@profile` (`openai/gpt-6-astra`), then a new chat. The container config must also never use an `@profile` model ref.
+
+**A4 finding: background utility model calls bypass the router.** Conversation-label generation uses the runtime default utility model `openai/gpt-5.6-luna` (`agents.defaults.utilityModel` is unset). It fails with 403 `reasoning_effort_not_allowed` on this ChatGPT Edu workspace, and it never passes through `before_model_resolve`. To decide (container config): set `agents.defaults.utilityModel` to an allowed model or turn label generation off; mention it in the README/audit as a non-routed background call.
+
+**Telegram/session finding (Nov 12 17:14):** Telegram DMs go to session `agent:main:main` (shared history). The Gemma turn hit `context-pressure … estimatedPromptTokens=28850 > promptBudgetBeforeReserve=24576 → compact_only`. The long-context rule (A6, rule 2) and session hygiene matter before the 48-hour run; consider a per-channel DM session scope or `/new` before demos.
+
 **Doc vs installed differences (ROUTER_SPEC.md "Verify first" was written from the website):**
 1. Plugin config is `api.pluginConfig`, **not** `event.context.pluginConfig` (the bundled docs say this explicitly).
 2. Model refs are two fields (`providerOverride` + `modelOverride`), not one `provider/model` string.
@@ -78,6 +87,8 @@ Sources: `$(npm root -g)/openclaw/dist/config-contracts-DzLaG7FV.d.ts` (types), 
 4. Local TS is loaded by OpenClaw's transformer. So A4 does **not** prove Node type stripping works; it proves OpenClaw's loader works.
 
 ### Measurements so far (for the performance report)
+- Nov 12 17:17 (Telegram, right after `/new`): Gemma "What is 12 times 9?" **~7 s** inbound→reply, no context-pressure line. Same prompt in the long shared session at 17:14: ~22 s with `compact_only`. Answer text: ask the student.
+- Nov 12 16:48 (CLI `openclaw agent`): Gemma turn "What is 12 times 9?" 16.5 s, **answered 118 (wrong)**; base prompt 11,007 tokens (estimate 14,188), so long-context threshold ≈ 32768 − ~14k − 4096 ≈ 14k (to confirm). ChatGPT "Explain step by step…" 7.3 s.
 - E4B: cold `ollama run` 49.0 s; 600-word answer 26.2 s warm; 9.4 GB; memory free 14% (yellow). **Rejected.**
 - E2B: 600-word answer 24.0 s including cold load; 7.4 GB; memory free 25%.
 - E2B agent turn with tool: 21 s. ChatGPT turns in F3: 17 s and 6 s; Gemma turn: 13 s.
@@ -90,6 +101,8 @@ openclaw config set models.providers.ollama '{"baseUrl":"http://127.0.0.1:11434"
 Applied live without a gateway restart. `openclaw infer model run --model ollama/gemma4-a3:e2b --prompt "Reply with exactly: ok"` returned `ok`.
 
 ### Observations that affect the design
+- **`/new` triggers the `session-memory` hook**, which writes the old session's context to `~/.openclaw/workspace/memory/<date-time>.md` (17:17:37). That's another memory writer besides dreaming. Those files can contain private message text, they end up in bucket snapshots (M7), and the README privacy statement must mention them. `/new` itself made no model call (no route_decision).
+- **Exec policy (Nov 12, `openclaw exec-policy show`):** profile `full`, exec and process allowed, command approvals `auto · full · no approval prompts`. This confirms the earlier finding. The container must set an approval gate (security audit item).
 - **Exec ran without approval** in a ChatGPT turn ("1 command"). Fresh installs do not ask. The approval gate must be configured explicitly (`tools.exec.mode` on 2026.10.9; inspect with `openclaw exec-policy show`). Record as a security-audit finding.
 - Default **heartbeat** (model turn ~every 30 min) and memory-core **"dreaming" cron** (rewrites MEMORY.md) are active. They are background model calls and a second memory writer. In the container: disable dreaming, set the heartbeat deliberately, and make sure both are routed and logged.
 - Default thinking level for ChatGPT is `medium`; Gemma `think:false` via provider params. Record both in the performance report. Plain `ollama run` shows "Thinking…" because the CLI doesn't use that param.

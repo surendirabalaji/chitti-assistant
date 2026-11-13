@@ -50,15 +50,22 @@ describe("toOverride: Decision -> OpenClaw override", () => {
   });
 
   it("uses two separate fields, never one 'provider/model' string", () => {
-    const o = toOverride({ target: "local", rule: "simple-task" }) as Record<string, string>;
+    const o = toOverride({ target: "local", rule: "simple-task" }) as unknown as Record<string, string>;
     expect(o.modelOverride).not.toContain("/");
     expect(o.providerOverride).not.toContain("/");
   });
 
-  it("returns a fresh object each call (callers can't corrupt shared state)", () => {
-    const a = toOverride({ target: "local", rule: "simple-task" }) as Record<string, string>;
-    a.modelOverride = "tampered";
+  // Either design is fine: return a fresh copy, or return a frozen shared object
+  // (student chose readonly + Object.freeze). What matters: tampering can't change later results.
+  it("callers can't corrupt shared state (fresh copy or frozen object)", () => {
+    const a = toOverride({ target: "local", rule: "simple-task" }) as unknown as Record<string, string>;
+    try {
+      a.modelOverride = "tampered"; // throws in strict mode if frozen; harmless if a copy
+    } catch {
+      // frozen: assignment rejected, which is also fine
+    }
     expect(toOverride({ target: "local", rule: "simple-task" })).toEqual(GEMMA);
+    expect(toOverride({ target: "cloud", rule: "default-cloud" })).toEqual(CHATGPT);
   });
 
   it.todo("A8: held -> what override? (decide: no override vs. force local so it can never reach cloud)");
@@ -132,5 +139,82 @@ describe("handler robustness (a throw silently falls back to the default model)"
   ])("still returns a valid override: %s", async (_label, event) => {
     const result = (await registeredHandler()(event, {})) as Record<string, string>;
     expect(["ollama", "openai"]).toContain(result.providerOverride);
+  });
+});
+
+// ---- Lesson A5: the hook logs one route_decision line per turn ----
+describe("A5: decision logging from the hook", () => {
+  function handlerWithSink(sink: (line: string) => void): Handler {
+    const { api, calls } = fakeApi();
+    registerRouter(api as never, sink);
+    return calls.find((c) => c.name === "before_model_resolve")!.handler;
+  }
+
+  it("logs exactly one line per turn", async () => {
+    const lines: string[] = [];
+    const h = handlerWithSink((l) => lines.push(l));
+    await h({ prompt: "What is 12 times 9?" }, { runId: "r1" });
+    await h({ prompt: "Explain step by step why." }, { runId: "r2" });
+    expect(lines).toHaveLength(2);
+  });
+
+  it("local turn: rule, target, provider/model, and runId as requestId", async () => {
+    const lines: string[] = [];
+    await handlerWithSink((l) => lines.push(l))({ prompt: "What is 12 times 9?" }, { runId: "run-abc" });
+    expect(JSON.parse(lines[0]!)).toMatchObject({
+      component: "a3-router",
+      kind: "route_decision",
+      requestId: "run-abc",
+      rule: "simple-task",
+      target: "local",
+      model: "ollama/gemma4-a3:e2b",
+    });
+  });
+
+  it("cloud turn: model is openai/gpt-6-astra", async () => {
+    const lines: string[] = [];
+    await handlerWithSink((l) => lines.push(l))(
+      { prompt: "Explain step by step why the sky is blue." },
+      { runId: "run-def" },
+    );
+    expect(JSON.parse(lines[0]!)).toMatchObject({
+      target: "cloud",
+      rule: "reasoning-heavy",
+      model: "openai/gpt-6-astra",
+    });
+  });
+
+  it("NEVER logs message text", async () => {
+    const lines: string[] = [];
+    await handlerWithSink((l) => lines.push(l))(
+      { prompt: "Bluebird says my locker code is 4711" },
+      { runId: "r" },
+    );
+    expect(lines[0]).not.toMatch(/bluebird|locker|4711/i);
+  });
+
+  it("still logs a non-empty requestId when ctx has no runId", async () => {
+    const lines: string[] = [];
+    const h = handlerWithSink((l) => lines.push(l));
+    await h({ prompt: "hi" }, undefined);
+    await h({ prompt: "hi" }, {});
+    for (const l of lines) {
+      const id = JSON.parse(l).requestId;
+      expect(typeof id).toBe("string");
+      expect(id.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("a broken logger never breaks routing (logging is not allowed to change the model)", async () => {
+    const h = handlerWithSink(() => {
+      throw new Error("stdout closed");
+    });
+    expect(await h({ prompt: "What is 12 times 9?" }, { runId: "r" })).toEqual(GEMMA);
+    expect(await h({ prompt: "Explain step by step why." }, { runId: "r" })).toEqual(CHATGPT);
+  });
+
+  it("logging does not change the returned override", async () => {
+    const h = handlerWithSink(() => {});
+    expect(await h({ prompt: "What is 12 times 9?" }, {})).toEqual(GEMMA);
   });
 });

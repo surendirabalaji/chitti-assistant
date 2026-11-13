@@ -1,0 +1,45 @@
+# A5 + F5 checks run by the assistant on the laptop, Nov 12 2026 (PST). Plugin a3-router reloaded at 16:46:39 (generation 3).
+
+## A5 turns via `openclaw agent --session-key agent:main:a3-a5-test --json` (summarised from JSON output)
+16:48:12  "What is 12 times 9?"
+  status ok, durationMs 16519
+  terminalReceipt.requested = openai/gpt-6-astra   terminalReceipt.effective = ollama/gemma4-a3:e2b
+  executionTrace.winner = ollama/gemma4-a3:e2b
+  modelRouteChange = "Model route changed: openai/gpt-6-astra → ollama/gemma4-a3:e2b."
+  promptTokens 11007 (base prompt size, used later for the long-context threshold)
+  reply text: "118"   <-- WRONG (correct is 108). Gemma E2B quality observation for the performance report.
+16:48:45  "Explain step by step why the sky is blue."
+  status ok, durationMs 7328
+  requested = openai/gpt-6-astra   effective = openai/gpt-6-astra (responseModel gpt-6-astra); reply 762 chars
+
+## Gateway file log (`openclaw logs --plain`), filtered for [hooks]
+2026-11-12T16:43:50.336-08:00 info agent/embedded [hooks] provider overridden to openai      <- heartbeat run (heartbeat-main lastRunAtMs 16:43:49)
+2026-11-12T16:43:50.337-08:00 info agent/embedded [hooks] model overridden to gpt-6-astra
+2026-11-12T16:48:14.023-08:00 info agent/embedded [hooks] provider overridden to ollama
+2026-11-12T16:48:14.023-08:00 info agent/embedded [hooks] model overridden to gemma4-a3:e2b
+2026-11-12T16:48:46.344-08:00 info agent/embedded [hooks] provider overridden to openai
+2026-11-12T16:48:46.344-08:00 info agent/embedded [hooks] model overridden to gpt-6-astra
+2026-11-12T16:50:43.076-08:00 info agent/embedded [hooks] provider overridden to openai      <- F5 cron run
+2026-11-12T16:50:43.076-08:00 info agent/embedded [hooks] model overridden to gpt-6-astra
+
+NOTE: the a3-router route_decision JSON lines go to the gateway's stdout (process.stdout.write) and are NOT in the
+file log. They must be checked in the gateway terminal (student). NOT VERIFIED by the assistant.
+
+## F5: cron turn passes through the plugin
+openclaw cron add --name a3-f5-test --display-name "A3 F5 router test" --every 24h --disabled --session isolated \
+  --no-deliver --light-context --message "[a3-cron] F5 test. Reply with exactly: ok"
+  -> id af0baf86-9646-4d27-b3e2-6ef83f2b157b, enabled false (left disabled for re-tests)
+openclaw cron run af0baf86-9646-4d27-b3e2-6ef83f2b157b      (16:50:42, "run now" command confirmed)
+  -> enqueued, runId manual:af0baf86-...:1794531042900:1
+openclaw cron runs --id af0baf86-...
+  -> status ok, durationMs 4715, provider openai, model gpt-6-astra, summary "ok",
+     sessionKey agent:main:cron:af0baf86-...:run:7b8aacc0-...
+Hook fired for the cron turn (16:50:43 [hooks] lines above). PASS.
+Unexpected: the 41-char message has no reasoning word, but it routed to CLOUD. So the cron turn's event.prompt is not the bare
+message (probably wrapped by cron, making it > 200 chars). Cause NOT VERIFIED; logging promptChars (metadata) would show it.
+
+## Exec policy (`openclaw exec-policy show`)
+TERMINAL ACCESS · main — UNVERIFIED
+Global: full ← active
+exec: Allowed by configuration; process: Allowed by configuration
+COMMAND APPROVALS (LOCAL): auto · full · no approval prompts · fallback deny

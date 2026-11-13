@@ -1,0 +1,25 @@
+# A5 decision log + Telegram end-to-end on the laptop, Nov 12 2026 ~5:13–5:14 PM PST
+# Source: gateway terminal output pasted by the student. Telegram numeric user ID redacted to <owner-id>.
+# Bot: @chitti_assistant_bot; token read from a chmod-600 tokenFile outside the repo; dmPolicy allowlist (owner only).
+
+{"component":"a3-router","kind":"route_decision","ts":"2026-11-13T01:13:50.427Z","requestId":"cd1ebe4f-8cf9-48dc-a5fb-0304fa29911b","rule":"default-cloud","target":"cloud","model":"openai/gpt-6-astra"}
+17:13:50 [agent/embedded] [hooks] provider overridden to openai
+17:13:50 [agent/embedded] [hooks] model overridden to gpt-6-astra
+17:13:51 [openai-transport] [responses] error provider=openai ... model=gpt-5.6-luna ... status=403 code=reasoning_effort_not_allowed ...   (utility model, not routed)
+17:13:54 [agent/embedded] [prompt-cache] cache read dropped 15488 -> 0 runId=cd1ebe4f-8cf9-48dc-a5fb-0304fa29911b request=1 for openai/gpt-6-astra ... sessionKey=agent:main:main ... requestGapMs=1800007 promptTokens=16484
+17:14:12 [reload] config change detected; evaluating reload (channels.telegram.allowFrom)
+17:14:12 [reload] config source revision 6 accepted (file)
+17:14:25 [telegram] Inbound message telegram:<owner-id> -> @chitti_assistant_bot (direct, 2 chars)
+{"component":"a3-router","kind":"route_decision","ts":"2026-11-13T01:14:25.721Z","requestId":"85c57d3e-5a52-4c3b-8f90-a1c70077911a","rule":"simple-task","target":"local","model":"ollama/gemma4-a3:e2b"}
+17:14:25 [agent/embedded] [hooks] provider overridden to ollama
+17:14:25 [agent/embedded] [hooks] model overridden to gemma4-a3:e2b
+17:14:25 [agent/embedded] [context-pressure-diagnostic] admitted provider attempt for ollama/gemma4-a3:e2b route=compact_only estimatedPromptTokens=28850 promptBudgetBeforeReserve=24576
+17:14:47 [telegram] outbound send ok accountId=default chatId=<owner-id> messageId=6 operation=sendMessage deliveryKind=text chunkCount=1
+
+# Interpretation (assistant):
+# - route_decision lines start with "{" (no prefix): parseable as Cloud Logging jsonPayload. A5 line format VERIFIED.
+# - requestId is OpenClaw's runId (same UUID as the prompt-cache runId), so ctx.runId IS populated in before_model_resolve.
+# - The 17:13:50 turn: sessionKey agent:main:main, requestGapMs=1800007 (= 30 min) -> heartbeat; long prompt -> default-cloud; logged.
+# - Telegram DM "hi" (2 chars) -> simple-task -> Gemma -> reply delivered to Telegram in ~22 s. Telegram end-to-end works.
+# - Privacy: no message text in the route_decision lines.
+# - Concern: the Telegram DM shares session agent:main:main; Gemma prompt estimate 28,850 > 24,576 budget -> compact_only.

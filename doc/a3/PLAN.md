@@ -19,10 +19,10 @@ Tick boxes as work is **verified**, not just written. Effort ranges are estimate
 - [x] F2 ChatGPT OAuth login and reply
 - [x] F4 Gemma E2B 32K agent turn with tool
 - [x] F3 manual model switching in one chat
-- [ ] Minimal router plugin (one rule + decision log): Lessons A1–A5 in LEARNING_PATH.md
-- [ ] F3 automatic switching via plugin
-- [ ] F5 cron turn passes through the plugin; confirm run-now command
-- [ ] Inspect effective exec policy (`openclaw exec-policy show`) and record
+- [x] Minimal router plugin (one rule + decision log): Lessons A1–A5 (Nov 12; the stdout line still needs a terminal check by the student)
+- [x] F3 automatic switching via plugin (Nov 12, evidence/2026-11-12-a4-auto-switch.txt)
+- [x] F5 cron turn passes through the plugin; run-now = `openclaw cron run <id>` (Nov 12)
+- [x] Inspect effective exec policy (`openclaw exec-policy show`) and record (Nov 12: full, no approvals)
 
 ## M1 Cloud foundation (2–3 h) — ask before each cloud command
 - [ ] GCP project, billing budget alert, region (us-west1 unless told otherwise)

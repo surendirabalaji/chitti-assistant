@@ -1,0 +1,12 @@
+{
+  "id": "a3-router",
+  "name": "Model Router",
+  "description": "Routes prompts to a local or cloud model.",
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}
