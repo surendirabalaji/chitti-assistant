@@ -1,0 +1,40 @@
+# M2 step 6: first Cloud Run Instance deploy, Fri Nov 13 2026 ~12:50 AM PST
+# Deploy run by the student (after a first attempt with --ingress=internal was rejected:
+# "spec.ingress: Ingress settings require a single container with a port."; nothing was created).
+# Logs read by the assistant with `gcloud beta run instances logs read` / `gcloud logging read` (read-only).
+
+$ gcloud beta run instances deploy a3-agent --region=us-west1 --image=...agent@sha256:b0a16fdf...45d0e \
+    --service-account=a3-agent@chitti-assistant-a3.iam.gserviceaccount.com --no-default-url --cpu=1 --memory=4Gi \
+    --set-secrets=TS_AUTHKEY=tailscale-authkey:latest \
+    --add-volume='name=state,type=cloud-storage,bucket=chitti-assistant-a3-state,mount-options=uid=10001;gid=10001' \
+    --add-volume-mount=volume=state,mount-path=/mnt/state --restart-policy=on-failure --startup-probe=""
+Instance [a3-agent] has successfully been created.
+
+# a3-ops lines (jsonPayload) from the first boot:
+08:50:30 boot
+08:50:37 config-applied
+08:50:37 state-restore-skipped  (not implemented until M7)
+08:50:37 tailscaled: Program starting: v1.104.7 ... --tun=userspace-networking --socks5-server=127.0.0.1:1055 --statedir=/mnt/state/tailscale
+08:50:38 tailscaled: generating new machine key / machine key written to store   (bucket mount writable by uid 10001)
+08:50:39 control: RegisterReq: got response; nodeKeyExpired=false, machineAuthorized=true
+08:50:40 active login: a3-cloud-agent.tail9bf1e8.ts.net
+08:50:40 Start: updated prefs: ... tags=tag:a3-agent ... host="a3-cloud-agent" op="agent"
+08:50:41 tailscale-up  hostname=a3-cloud-agent ip=100.71.136.89
+08:50:41 forwarder-missing  (expected until M2 step 8)
+08:51:02 isolation-report  user=agent uid=10001 capEff=0000000000000000 listening=0.0.0.0%lo:47428,127.0.0.1:1055
+         (taken before the gateway listened; 47428 = tailscale peerapi on lo, 1055 = SOCKS5 on loopback)
+08:51:15 [gateway] startup phase: cli.main.gateway-run-bootstrap 28157.5ms ... failed
+08:51:15 [openclaw] The CLI command failed.
+08:51:31 chatgpt-login-needed
+08:51:31 child-exited status=1 -> shutdown exitCode=1 -> "Container called exit(1)." -> restarted by Cloud Run
+
+# Diagnosis (local, by the assistant, image chitti-a3-agent:dev):
+# - Gateway with managed Serve and with a parallel `models auth list` both start fine locally: the cloud failure
+#   reason is NOT known (it went to /tmp/openclaw/*.log inside the container). Not verified.
+# - `openclaw models auth login --provider openai --method device-code` without a terminal:
+#   "models auth login requires an interactive TTY." -> the first-boot login could never have worked.
+#   Wrapped in `script -qfec ... /dev/null` it prints "URL: https://auth.openai.com/codex/device" and a code
+#   ("Code expires in 15 minutes") and waits (code redacted; never completed).
+# Fixes in image 2026-11-13b (sha256:5f38e0f4968bb877c24ef41369994b5428b52b9e32c7b147e9c62a1fe95d7805):
+#   login runs under `script` and BEFORE the gateway (no parallel CLI during bootstrap); isolation report waits
+#   for 127.0.0.1:18789; on a child exit the tail of the gateway log file is printed to stdout.

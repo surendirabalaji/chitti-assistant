@@ -90,3 +90,8 @@ _To be written by the student._
 
 ### 2026-11-13: M2 step 5 (Artifact Registry + push), run by the student
 - Student created the Docker repository `a3` (us-west1), configured the gcloud Docker credential helper, tagged and pushed `agent:2026-11-13a` (digest `sha256:b0a16fdf…45d0e`). The assistant confirmed the tag with a read-only `gcloud artifacts docker images list`. Evidence: `evidence/2026-11-13-m2-step5-artifact-registry.txt`.
+
+### 2026-11-13: M2 step 6 (first deploy), debugging
+- Student approved the deploy; the assistant's run was rejected (`--ingress` needs a port, nothing created); after re-approval of the changed command the student ran it and the instance was created.
+- The assistant read the boot logs (read-only): Tailscale, secret, bucket mount and isolation report work; the gateway bootstrap failed without a visible reason; first-boot login was attempted only after that.
+- Assistant reproduced locally (Docker): gateway with managed Serve and with a parallel CLI both start; device-code login fails without a TTY and works under `script`. Assistant changed `deploy/startup.sh` (login under `script` and before the gateway, isolation report waits for the gateway port, gateway log tail on failure), rebuilt and pushed `agent:2026-11-13b` (digest `sha256:5f38e0f4…7805`). The gateway failure cause in the cloud is still not verified.

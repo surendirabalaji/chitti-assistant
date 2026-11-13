@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Container entrypoint for the A3 agent (run by tini as the non-root user "agent").
 # Order: secrets -> config -> (restore: M7) -> tailscaled -> tailscale up -> forwarder
-#        -> gateway (OpenClaw runs Tailscale Serve :443 itself) -> isolation report -> supervise.
+#        -> ChatGPT login (first boot) -> gateway (OpenClaw runs Tailscale Serve :443 itself)
+#        -> isolation report -> supervise.
 # Logs are one JSON object per line on stdout (component a3-ops). Never log secret values.
 set -euo pipefail
 
@@ -83,7 +84,20 @@ else
   ops "forwarder-missing" "\"reason\":\"router/src/forwarder.ts not in image\""
 fi
 
-# --- 6. Gateway (foreground process we supervise) --------------------------------------
+# --- 6. ChatGPT sign-in on first boot, BEFORE the gateway starts ------------------------
+# No other OpenClaw CLI may run while the gateway bootstraps (the first cloud boot failed
+# that way). The device code + URL are printed to the logs; the boot waits up to 15 min.
+if ! openclaw models auth list 2>/dev/null | grep -q 'openai'; then
+  ops "chatgpt-login-needed" "\"hint\":\"open the URL and enter the code printed below\""
+  # The login refuses to run without a terminal; `script` gives it a pseudo-TTY (verified locally).
+  if timeout 900 script -qfec "openclaw models auth login --provider openai --method device-code" /dev/null </dev/null; then
+    ops "chatgpt-login-done"
+  else
+    ops "chatgpt-login-failed" "\"note\":\"gateway starts anyway; cloud replies will fail until login\""
+  fi
+fi
+
+# --- 7. Gateway (foreground process we supervise) --------------------------------------
 openclaw gateway run &
 GATEWAY_PID=$!
 
@@ -99,29 +113,24 @@ shutdown() { # shutdown <exit code>: 0 on SIGTERM, 1 if a child died (Cloud Run 
 }
 trap 'shutdown 0' TERM INT
 
-# --- 7. Isolation report (evidence for the security audit) -----------------------------
+# --- 8. Isolation report once the gateway listens (evidence for the security audit) ----
 (
-  sleep 20
+  for _ in $(seq 1 120); do
+    ss -ltnH 2>/dev/null | grep -q '127.0.0.1:18789' && break
+    sleep 2
+  done
   CAPEFF="$(awk '/^CapEff:/ {print $2}' /proc/self/status)"
   PORTS="$(ss -ltnH 2>/dev/null | awk '{print $4}' | sort -u | paste -sd, -)"
   ops "isolation-report" "\"user\":\"$(id -un)\",\"uid\":$(id -u),\"capEff\":\"$CAPEFF\",\"listening\":\"$PORTS\""
 ) &
-
-# --- 8. ChatGPT sign-in on first boot (device code shown in the logs; separate from laptop)
-if ! openclaw models auth list 2>/dev/null | grep -q 'openai'; then
-  ops "chatgpt-login-needed" "\"hint\":\"open the URL and enter the code printed below\""
-  (
-    if openclaw models auth login --provider openai --method device-code; then
-      ops "chatgpt-login-done"
-    else
-      ops "chatgpt-login-failed"
-    fi
-  ) &
-fi
 
 # --- 9. Supervise: if the gateway, tailscaled or the forwarder dies, exit so Cloud Run restarts us
 set +e
 wait -n "$GATEWAY_PID" "$TAILSCALED_PID" ${FORWARDER_PID:+"$FORWARDER_PID"}
 STATUS=$?
 ops "child-exited" "\"status\":$STATUS"
+if ! kill -0 "$GATEWAY_PID" 2>/dev/null; then
+  ops "gateway-log-tail" "\"file\":\"/tmp/openclaw\""
+  tail -n 40 /tmp/openclaw/openclaw-*.log 2>/dev/null | cut -c1-400 || true
+fi
 shutdown 1
