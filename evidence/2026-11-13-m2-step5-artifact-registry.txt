@@ -1,0 +1,13 @@
+# M2 step 5: Artifact Registry + push, Fri Nov 13 2026 ~1 AM PST (commands run by the student, output pasted)
+$ gcloud artifacts repositories create a3 --repository-format=docker --location=us-west1 --description="A3 agent images"
+Created repository [a3].
+$ gcloud auth configure-docker us-west1-docker.pkg.dev
+(adds "credHelpers": {"us-west1-docker.pkg.dev": "gcloud"} to ~/.docker/config.json; no password stored)
+$ docker tag chitti-a3-agent:dev us-west1-docker.pkg.dev/chitti-assistant-a3/a3/agent:2026-11-13a
+$ docker push us-west1-docker.pkg.dev/chitti-assistant-a3/a3/agent:2026-11-13a
+2026-11-13a: digest: sha256:b0a16fdf285d83c6065d89feaf9067983a856a04f51614e534c4559710e45d0e size: 856
+
+# Checked by the assistant (read-only):
+$ gcloud artifacts docker images list us-west1-docker.pkg.dev/chitti-assistant-a3/a3 --include-tags
+.../a3/agent  2026-11-13a  sha256:b0a16fdf285d83c6065d89feaf9067983a856a04f51614e534c4559710e45d0e
+(two untagged entries are the per-platform/attestation manifests of the same push)
