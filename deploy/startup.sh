@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Container entrypoint for the A3 agent (run by tini as the non-root user "agent").
 # Order: secrets -> config -> (restore: M7) -> tailscaled -> tailscale up -> forwarder
-#        -> ChatGPT login (first boot) -> gateway (OpenClaw runs Tailscale Serve :443 itself)
+#        -> ChatGPT login check -> gateway (OpenClaw runs Tailscale Serve :443 itself)
 #        -> isolation report -> supervise.
 # Logs are one JSON object per line on stdout (component a3-ops). Never log secret values.
 set -euo pipefail
@@ -31,6 +31,10 @@ if [ -z "${OPENCLAW_GATEWAY_TOKEN:-}" ]; then
   OPENCLAW_GATEWAY_TOKEN="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"
   export OPENCLAW_GATEWAY_TOKEN
 fi
+# Private copy (0600, agent only, local disk) so an SSH session running as "agent" can use
+# the CLI against the running gateway. Never copied to the bucket.
+mkdir -p "$STATE_DIR"
+printf '%s' "$OPENCLAW_GATEWAY_TOKEN" > "$STATE_DIR/.gateway-token"
 
 # --- 2. Config: repo template wins on every boot; keep the `auth` block the login wrote ---
 mkdir -p "$STATE_DIR"
@@ -84,17 +88,14 @@ else
   ops "forwarder-missing" "\"reason\":\"router/src/forwarder.ts not in image\""
 fi
 
-# --- 6. ChatGPT sign-in on first boot, BEFORE the gateway starts ------------------------
-# No other OpenClaw CLI may run while the gateway bootstraps (the first cloud boot failed
-# that way). The device code + URL are printed to the logs; the boot waits up to 15 min.
-if ! openclaw models auth list 2>/dev/null | grep -q 'openai'; then
-  ops "chatgpt-login-needed" "\"hint\":\"open the URL and enter the code printed below\""
-  # The login refuses to run without a terminal; `script` gives it a pseudo-TTY (verified locally).
-  if timeout 900 script -qfec "openclaw models auth login --provider openai --method device-code" /dev/null </dev/null; then
-    ops "chatgpt-login-done"
-  else
-    ops "chatgpt-login-failed" "\"note\":\"gateway starts anyway; cloud replies will fail until login\""
-  fi
+# --- 6. ChatGPT sign-in check (no login at boot) -----------------------------------------
+# Device-code sign-in is blocked for the USC ChatGPT Edu workspace (verified Nov 13), so the
+# login is done once over `gcloud beta run instances ssh` with the browser flow, as user
+# "agent" with this container's env (see deploy/LOGIN.md). Here we only report the state.
+if openclaw models auth list 2>/dev/null | grep -q 'openai'; then
+  ops "chatgpt-login-present"
+else
+  ops "chatgpt-login-needed" "\"how\":\"instance ssh, browser sign-in as user agent\""
 fi
 
 # --- 7. Gateway (foreground process we supervise) --------------------------------------
