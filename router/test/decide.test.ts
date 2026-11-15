@@ -127,6 +127,31 @@ describe("Gemma's label (when available)", () => {
   });
 });
 
+describe("memory label (Nov 14 night: Gemma classifies 'something about the user to remember')", () => {
+  it("statements and recall questions -> cloud memory-task via gemma", () => {
+    for (const m of ["Machan my favourite movie is enthiran da.", "Remember that I like coffee.", "What is my favourite movie?"]) {
+      expect(decide(m, g("memory"))).toEqual({ target: "cloud", rule: "memory-task", via: "gemma", signals: ["gemma:memory"] });
+    }
+  });
+  it("privacy wins: a fixed privacy word keeps it local even if Gemma says memory", () => {
+    expect(route("Remember my bank PIN is 4471.", g("memory"))).toEqual({ target: "local", rule: "privacy-sensitive", via: "fixed" });
+  });
+  it("fixed rules still win (long context, cron)", () => {
+    expect(route("My favourite movie is Enthiran.", st({ category: "memory", sessionSizeEst: 25000 })).rule).toBe("long-context");
+    expect(route("My favourite movie is Enthiran.", st({ category: "memory", isCron: true })).rule).toBe("tool-task");
+  });
+  it("rate-limit switch: memory-task is a cloud outcome -> local while Ollama is up", () => {
+    expect(route("My favourite movie is Enthiran.", st({ category: "memory", simulateRateLimit: true }))).toMatchObject({ target: "local", rule: "cloud-rate-limited" });
+  });
+  it("without a label (Gemma down/slow) nothing changes: short message -> simple rules", () => {
+    expect(route("My favourite movie is Enthiran.")).toMatchObject({ target: "local", rule: "simple-task", via: "heuristic" });
+    expect(route("My favourite movie is Enthiran.", DOWN)).toMatchObject({ target: "cloud", rule: "local-unavailable" });
+  });
+  it("a cloud memory turn that asked a question can be continued by a follow-up", () => {
+    expect(followupCandidate({ target: "cloud", rule: "memory-task", repliedAt: 1000, askedQuestion: true }, 2000, false)).toBe(true);
+  });
+});
+
 describe("scoring fallback (no label: Gemma down, slow, or not asked)", () => {
   it.each([
     ["arithmetic", "What is 12 times 9?", "local", "simple-task"],

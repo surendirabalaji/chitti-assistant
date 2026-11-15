@@ -7,7 +7,7 @@ import { analyze, type WordLists } from "./signals.ts";
 export { compileWords } from "./signals.ts";
 
 export type Target = "local" | "cloud" | "held" | "none";
-export type Category = "simple" | "reasoning" | "tool" | "private";
+export type Category = "simple" | "reasoning" | "tool" | "private" | "memory";
 export type Via = "fixed" | "gemma" | "heuristic";
 
 export interface Decision {
@@ -153,6 +153,13 @@ function taskRoute(text: string, state: RouterState, config: RouterConfig, a: Re
     const rule = state.category === "tool" ? "tool-task" : "reasoning-heavy";
     return { target: "cloud", rule, via: "gemma", signals: [`gemma:${state.category}`] };
   }
+  // 4b'. Memory (Nov 14 night, student's design): the user tells the assistant something lasting about
+  //      themselves, or asks about it. Saving/recalling needs file and memory_search tools, which Gemma
+  //      does not use (cloud test: a statement Gemma handled was never saved; one ChatGPT handled was
+  //      written to USER.md). Confidential facts never get here: privacy (rule 1) wins first.
+  if (state.category === "memory") {
+    return { target: "cloud", rule: "memory-task", via: "gemma", signals: ["gemma:memory"] };
+  }
   if (state.category === "simple") {
     if (a.tool.length > 0) return { target: "cloud", rule: "tool-task", via: "heuristic", signals: ["gemma:simple", ...a.tool] };
     if (a.explicitReasoning) return { target: "cloud", rule: "reasoning-heavy", via: "heuristic", signals: ["gemma:simple", ...a.reasoning] };
@@ -182,7 +189,7 @@ export function needsClassifier(message: string, state: RouterState, config: Rou
 
 // Rules whose cloud turns can be continued by a follow-up. Not the privacy/local-down fallbacks or
 // long-context: those reach the cloud for reasons unrelated to the task.
-const FOLLOWUP_RULES: ReadonlySet<string> = new Set(["tool-task", "reasoning-heavy", "follow-up", "default-cloud"]);
+const FOLLOWUP_RULES: ReadonlySet<string> = new Set(["tool-task", "reasoning-heavy", "follow-up", "default-cloud", "memory-task"]);
 
 const GREETING_ONLY =
   /^(?:hi|hey|hello|thanks|thank you|thx|ty|cool|great|nice|good (?:morning|afternoon|evening|night))(?:[\s,!.]+(?:there|so much|a lot|chitti))*[\s!.]*$/iu;

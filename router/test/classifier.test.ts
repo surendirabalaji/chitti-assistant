@@ -31,7 +31,7 @@ describe("request shape", () => {
       options: { num_ctx: 32768, temperature: 0 },
       messages: [{ role: "system", content: CLASSIFIER_SYSTEM }, { role: "user", content: "Name a planet." }],
     });
-    expect(body.format.properties.category.enum).toEqual(["simple", "reasoning", "tool", "private"]);
+    expect(body.format.properties.category.enum).toEqual(["simple", "reasoning", "tool", "private", "memory"]);
     expect((f.calls[0]!.init.headers as Record<string, string>)["x-a3-purpose"]).toBe("route-classify");
   });
 
@@ -43,7 +43,7 @@ describe("request shape", () => {
 });
 
 describe("results", () => {
-  it.each(["simple", "reasoning", "tool", "private"])("valid label %s", async (c) => {
+  it.each(["simple", "reasoning", "tool", "private", "memory"])("valid label %s", async (c) => {
     const r = await classify("x", opts(fakeFetch(() => ok(`{"category":"${c}"}`)).impl));
     expect(r.category).toBe(c);
     expect(r.error).toBeUndefined();

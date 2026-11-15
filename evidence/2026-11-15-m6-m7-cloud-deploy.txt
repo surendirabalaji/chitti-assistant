@@ -57,3 +57,16 @@ Restart 2 (student redeployed 04:07:29): shutdown snapshot 04:07:35 -> state-res
 Student's read-only check over SSH (04:3x): workspace/USER.md:48 "- Remember that I like coffee." (USER.md mtime 02:21 = the ChatGPT tool call; survived both restarts; AGENTS/SOUL/IDENTITY mtime 04:10 = reset from the repo at boot). No workspace/memory/ folder, no MEMORY.md.
 Root cause of weak cross-chat memory: every cloud boot logs "startup outcomes: internal-hooks=skipped (not-configured)". The laptop config has hooks.internal.entries.session-memory.enabled=true (set by onboarding); the container template never had it, so /new saved no memory/YYYY-MM-DD-HHMM.md note, and the next chat only had what the model happened to write to USER.md.
 Fix (local, not deployed): template hooks.internal.entries.session-memory.enabled=true + agents.defaults.userTimezone=America/Los_Angeles; local container: config valid, "internal-hooks=loaded", "[hooks] loaded 1 internal hook handler". SOUL.md: one line under the §1 examples ("tone only, never repeat them word for word").
+
+Leaked container incident (Nov 14 8:40 PM - 9:45 PM PST; owner ID omitted)
+04:09:18 "Cloud Run ssh session initiated" on container ...bd7cefcc (boot 04:07:50, image 2026-11-14c) - the student's SSH session (grep)
+04:40:19 ReplaceInstance (deploy 2026-11-14d). 04:40:24 system log "Shutting down user disabled instance" for ...bd7cefcc, but it never ran our shutdown handler and kept running.
+04:42:34 new container ...bdf1969d boots; both run: 04:53:17-04:55:48 "Telegram getUpdates conflict: terminated by other getUpdates request"; both run jobs and snapshots; same Tailscale identity.
+04:58:21 StopInstance: only the tracked container stopped (shutdown 04:58:24, final-snapshot-failed). 04:59:10 StartInstance failed "Instance stopped". 05:07 start ok -> again two containers.
+SSH windows closed (no gcloud ssh process on the laptop) -> leaked container still alive. 05:13:29 instance deleted: tracked container shut down cleanly; leaked container still logging 05:18:40 with 0 instances listed.
+Cut-offs (student ran, assistant prepared + verified): Telegram bot token revoked in BotFather + secret telegram-bot-token version 2 (05:24); Tailscale machine a3-cloud-agent removed; new service account a3-agent-v2 (same roles: logging.logWriter, bucket objectAdmin, secretAccessor x4), old a3-agent removed from bucket + secrets (keeps logWriter, no keys).
+Leaked container's last log line before 05:20; none since. Recreated 05:26:16 (image 2026-11-14d, SA a3-agent-v2): first container replaced by the platform after 8 s (no shutdown line), then one container ...bd230beb:
+05:27:09 state-restored snap-20261115T051930085Z.tar.gz ageSec=459 | 05:29:53 tailscale-up a3-cloud-agent 100.71.136.89 | 05:30:46 chatgpt-login-present
+05:34:40 startup outcomes: internal-hooks=loaded ; gateway ready ; 05:34:44 telegram starting provider (new token, no 401, no conflicts)
+05:42:02 snapshot first (bucket write as a3-agent-v2, 122 s during boot) | 05:42:56 jobs-installed failed=0
+Outage: Telegram unreliable ~04:53-05:13, agent down 05:13-05:35. Cause (most likely, not proven): an SSH session open into the container kept it alive through the platform shutdown; Cloud Run then lost track of it. Lesson: close SSH before any deploy/stop/restart; check the old container logs shutdown/stopped.
