@@ -44,6 +44,8 @@ const LOOPBACK_URL = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/;
 
 export const DEFAULT_HELD_REPLY =
   "The local model is off and can't be reached right now, so this private request was held and not sent to any model. Please try again when it's back.";
+export const DEFAULT_LONG_CONTEXT_HELD_REPLY =
+  "This chat is too long for the private local model, so this private message was held and not sent to any model. Send /new to start a fresh chat, then send it again.";
 export const DEFAULT_UNAVAILABLE_REPLY =
   "The cloud model is unavailable right now (simulated rate limit) and the local model is off, so this request was not sent to any model. Please try again later.";
 
@@ -59,6 +61,7 @@ export interface RouterConfigFromPlugin {
   healthCheck: boolean;
   simulateRateLimit: boolean;
   heldReply: string;
+  longContextHeldReply: string;
   unavailableReply: string;
   logMirrorFile: string | undefined;
   traceHooks: boolean; // laptop debugging: hook arrival metadata to the mirror file only
@@ -99,6 +102,7 @@ export function readRouterConfig(raw: unknown): RouterConfigFromPlugin {
     healthCheck: c.healthCheck !== false,
     simulateRateLimit: c.simulateRateLimit === true,
     heldReply: textOr(c.heldReply, DEFAULT_HELD_REPLY),
+    longContextHeldReply: textOr(c.longContextHeldReply, DEFAULT_LONG_CONTEXT_HELD_REPLY),
     unavailableReply: textOr(c.unavailableReply, DEFAULT_UNAVAILABLE_REPLY),
     logMirrorFile: typeof c.logMirrorFile === "string" ? c.logMirrorFile : undefined,
     traceHooks: c.traceHooks === true,
@@ -391,7 +395,8 @@ export function registerRouter(
       if (d.target !== "held" && d.target !== "none") return undefined;
       decisions.delete(runId);
       logResult(runId, d, "none", false, d.target === "held" ? "held" : "cloud-unavailable", now() - d.startedAt);
-      return { handled: true, reply: { text: d.target === "held" ? cfg.heldReply : cfg.unavailableReply } };
+      const text = d.target !== "held" ? cfg.unavailableReply : d.rule === "privacy-long-context" ? cfg.longContextHeldReply : cfg.heldReply;
+      return { handled: true, reply: { text } };
     } catch {
       return undefined; // the local pin in toOverride still keeps it off the cloud
     }

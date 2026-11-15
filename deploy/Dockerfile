@@ -74,7 +74,7 @@ RUN chown -R root:root /app/focus-finder \
 # Scheduled jobs (M6): installer, command-job scripts, briefing/recap prompts. Root-owned and read-only for
 # the agent, because command jobs run unattended in the gateway and a3-activity is allowlisted.
 COPY deploy/jobs/lib.mjs deploy/jobs/alerts.mjs deploy/jobs/hourly.mjs deploy/jobs/activity.mjs \
-     deploy/jobs/catchup.mjs deploy/jobs/snapshot.mjs deploy/jobs/restore.mjs \
+     deploy/jobs/catchup.mjs deploy/jobs/snapshot.mjs deploy/jobs/restore.mjs deploy/jobs/watch.mjs \
      deploy/jobs/briefing.md deploy/jobs/recap.md deploy/jobs/install-jobs.sh /app/jobs/
 # Persona/workspace files (M7, synthetic), copied into the workspace by startup.sh.
 COPY workspace/AGENTS.md workspace/SOUL.md workspace/IDENTITY.md workspace/USER.md /app/workspace-seed/

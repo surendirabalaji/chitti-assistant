@@ -68,3 +68,18 @@ runuser -u agent -- env HOME=/home/agent GOG_HOME=/mnt/state/gogcli GOG_KEYRING_
 Scopes: Gmail read + send (`read-send`) + compose (drafts), Calendar. Sending is blocked for the
 agent by the wrapper (`--gmail-no-send`); the send-email wrapper (allowlist + human approval) is the
 only send path. Re-run with `--force-consent` and the same flags if Google ever revokes the token.
+
+# Restore a watched file (USER.md / MEMORY.md)
+
+The `a3-watch` job (every 5 min) messages the owner when USER.md or MEMORY.md changes and saves the
+**previous** version on the bucket as `/mnt/state/a3/watch-history/<file>.<UTC time>.prev` (last 20 per
+file). To restore one (root shell over instance SSH, then `exit`):
+
+```sh
+ls -1 /mnt/state/a3/watch-history/ | tail -5
+runuser -u agent -- cp /mnt/state/a3/watch-history/USER.md.<UTC time>.prev /home/agent/.openclaw/workspace/USER.md
+```
+
+The next watch run reports the restore as a change (expected). New scheduled jobs that were not created
+by `install-jobs.sh` are reported once; inspect with `openclaw automations show <id>` and remove with
+`openclaw automations rm <id>` (as user `agent`, same `runuser ... sh -c` prefix as the sign-in above).

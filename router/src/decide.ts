@@ -100,7 +100,14 @@ export function decide(
   if (a.privacy.length > 0 || gemmaPrivate) {
     const via: Via = a.privacy.length > 0 ? "fixed" : "gemma";
     const signals = a.privacy.length > 0 ? a.privacy : ["gemma:private"];
-    if (state.localHealthy) return { target: "local", rule: "privacy-sensitive", via, signals };
+    if (state.localHealthy) {
+      // Too much history for Gemma's window (cloud test Nov 15: 38k-93k tokens vs a 24.5k budget, so
+      // Gemma answered an earlier message). Hold it instead: no model; the reply asks for /new.
+      if (state.sessionSizeEst > config.longContextTokens) {
+        return { target: "held", rule: "privacy-long-context", via, signals: [...signals, "session:large"] };
+      }
+      return { target: "local", rule: "privacy-sensitive", via, signals };
+    }
     if (config.privateWhenLocalDown === "held") return { target: "held", rule: "privacy-local-unavailable", via, signals };
     choice = { target: "cloud", rule: "privacy-local-unavailable", via, signals: [...signals, "policy:cloud-fallback"] };
   } else {

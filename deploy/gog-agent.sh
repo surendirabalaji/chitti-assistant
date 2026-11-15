@@ -11,4 +11,18 @@ if [ -z "${GOG_KEYRING_PASSWORD:-}" ] && [ -r "$PW_FILE" ]; then
   GOG_KEYRING_PASSWORD="$(cat "$PW_FILE")"
   export GOG_KEYRING_PASSWORD
 fi
-exec "$REAL" --gmail-no-send --no-input "$@"
+# Gmail reads (Nov 15): --wrap-untrusted marks fetched email text as external untrusted content in JSON
+# output (gog v0.47.1 global flag), so injected instructions arrive labelled as data. Gmail only: calendar
+# titles feed the alert job's Telegram text, where markers would be noise.
+WRAP=""
+skip=""
+for a in "$@"; do
+  if [ -n "$skip" ]; then skip=""; continue; fi
+  case "$a" in
+    --account|-a|--client) skip=1 ;;
+    -*) ;;
+    gmail|mail|email) WRAP="--wrap-untrusted"; break ;;
+    *) break ;;
+  esac
+done
+exec "$REAL" --gmail-no-send --no-input $WRAP "$@"

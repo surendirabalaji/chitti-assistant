@@ -85,6 +85,14 @@ declare_job a3-state-snapshot \
   --timeout-seconds 200 --no-deliver \
   --description "Bucket snapshot of OpenClaw state when due (5 min or login change)"
 
+# 7. Change watch (Nov 15): USER.md / MEMORY.md changes and agent-created jobs -> owner's Telegram.
+#    Offset from the alerts slot (minute 2, 7, 12, ...) to spread load on 1 vCPU.
+declare_job a3-watch \
+  --cron "2-59/5 * * * *" --tz "$TZNAME" --exact \
+  --command-argv "[\"$NODE\",\"$JOBS_DIR/watch.mjs\"]" \
+  --timeout-seconds 120 "${TELEGRAM[@]}" \
+  --description "Report USER.md/MEMORY.md changes and scheduled jobs not created by the setup"
+
 # Missed-job catch-up (briefing before noon, recap before 22:00).
 if LIST="$(openclaw cron list --timeout "$CLI_TIMEOUT_MS" --all --json 2>/dev/null)"; then
   while read -r id key; do

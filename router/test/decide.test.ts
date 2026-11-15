@@ -35,6 +35,26 @@ describe("video prompts: same route with Gemma's label and without it (heuristic
     expect(decide("This is confidential: remind me my locker code is on a sticky note.", DOWN, { ...DEFAULT_CONFIG, privateWhenLocalDown: "held" }))
       .toMatchObject({ target: "held", rule: "privacy-local-unavailable", via: "fixed" });
   });
+  it("private + chat over the long-context limit + local up -> held (Nov 15 cloud finding)", () => {
+    const d = decide("my salary is 85k, is that low?", st({ sessionSizeEst: 20001 }));
+    expect(d).toMatchObject({ target: "held", rule: "privacy-long-context", via: "fixed" });
+    expect(d.signals).toEqual(expect.arrayContaining(["privacy:word", "session:large"]));
+  });
+  it("private + long chat + Gemma-added privacy -> held too", () => {
+    expect(decide("what should I tell them about it?", st({ sessionSizeEst: 30000, category: "private" })))
+      .toMatchObject({ target: "held", rule: "privacy-long-context", via: "gemma" });
+  });
+  it("private + exactly at the limit -> still local (strictly greater holds)", () => {
+    expect(route("my salary is 85k, is that low?", st({ sessionSizeEst: 20000 }))).toMatchObject({ target: "local", rule: "privacy-sensitive" });
+  });
+  it("private + long chat + local DOWN -> the local-down policy applies, not the long-context hold", () => {
+    expect(route("my salary is 85k, is that low?", { ...DOWN, sessionSizeEst: 30000 })).toMatchObject({ target: "cloud", rule: "privacy-local-unavailable" });
+    expect(decide("my salary is 85k, is that low?", { ...DOWN, sessionSizeEst: 30000 }, { ...DEFAULT_CONFIG, privateWhenLocalDown: "held" }))
+      .toMatchObject({ target: "held", rule: "privacy-local-unavailable" });
+  });
+  it("private + long chat + simulated rate limit -> still held (the hold returns before the rate-limit step)", () => {
+    expect(route("my salary is 85k, is that low?", st({ sessionSizeEst: 30000, simulateRateLimit: true }))).toMatchObject({ target: "held", rule: "privacy-long-context" });
+  });
   it("9: private + Ollama back -> local (fixed)", () => {
     expect(route('This is confidential: say "back online" in three words.'))
       .toEqual({ target: "local", rule: "privacy-sensitive", via: "fixed" });

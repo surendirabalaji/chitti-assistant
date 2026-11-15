@@ -425,6 +425,7 @@ describe("A7-A9: health, held reply, route_result, rate-limit config", () => {
       claim: h("before_agent_reply"),
       callEnded: h("model_call_ended"),
       end: h("agent_end"),
+      output: h("llm_output"),
     };
   }
   const PRIVATE = "This is confidential: remind me my locker code is on a sticky note.";
@@ -483,6 +484,37 @@ describe("A7-A9: health, held reply, route_result, rate-limit config", () => {
     expect(x.lines).toHaveLength(0);
     await x.resolve({ prompt: "What is 12 times 9?" }, { runId: "r" });
     expect(x.parsed().filter((l) => l.kind === "route_decision")).toHaveLength(1);
+  });
+
+  it("long chat + private (claim runs first, as in OpenClaw): held, /new reply, decision + result logged, no model", async () => {
+    const x = setup();
+    x.output({ sessionId: "s1", usage: { input: 25000, output: 500, total: 25500 } }, {});
+    const claim = (await x.claim({ cleanedBody: PRIVATE }, { runId: "lh1", sessionId: "s1" })) as { handled: boolean; reply: { text: string } };
+    expect(claim.handled).toBe(true);
+    expect(claim.reply.text).toMatch(/too long for the private local model/);
+    expect(claim.reply.text).toMatch(/\/new/);
+    const [dec, res] = x.parsed();
+    expect(dec).toMatchObject({ kind: "route_decision", requestId: "lh1", target: "held", model: "none", rule: "privacy-long-context", sessionSizeEst: 25500 });
+    expect(res).toMatchObject({ kind: "route_result", requestId: "lh1", target: "held", ok: false, error: "held" });
+  });
+  it("long chat + private when before_model_resolve runs first: pinned to local (never cloud), then the claim answers", async () => {
+    const x = setup();
+    x.output({ sessionId: "s2", usage: { input: 25000, output: 500, total: 25500 } }, {});
+    expect(await x.resolve({ prompt: PRIVATE }, { runId: "lh2", sessionId: "s2" })).toEqual(GEMMA);
+    const claim = (await x.claim({ cleanedBody: PRIVATE }, { runId: "lh2", sessionId: "s2" })) as { reply: { text: string } };
+    expect(claim.reply.text).toMatch(/Send \/new/);
+  });
+  it("long chat + NON-private message: claim does nothing (long-context -> cloud as before)", async () => {
+    const x = setup();
+    x.output({ sessionId: "s3", usage: { input: 25000, output: 500, total: 25500 } }, {});
+    expect(await x.claim({ cleanedBody: "What is 12 times 9?" }, { runId: "lh3", sessionId: "s3" })).toBeUndefined();
+    expect(await x.resolve({ prompt: "What is 12 times 9?" }, { runId: "lh3", sessionId: "s3" })).toEqual(CHATGPT);
+  });
+  it("custom longContextHeldReply from config; the local-down held reply is unchanged", async () => {
+    const x = setup({ longContextHeldReply: "Too long: /new please." });
+    x.output({ sessionId: "s4", usage: { input: 25000, output: 500, total: 25500 } }, {});
+    expect(((await x.claim({ cleanedBody: PRIVATE }, { runId: "lh4", sessionId: "s4" })) as { reply: { text: string } }).reply.text).toBe("Too long: /new please.");
+    expect(readRouterConfig({}).longContextHeldReply).toMatch(/too long/);
   });
 
   it("A8: custom held reply from config", async () => {

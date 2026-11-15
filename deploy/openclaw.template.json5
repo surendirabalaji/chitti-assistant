@@ -42,7 +42,10 @@
     },
   },
   // send-email skill (tells the agent the only way to send mail); script installed at /usr/local/bin/send-email.
-  skills: { load: { extraDirs: ["/app/skills"] } },
+  // workshop.autonomous off: the default "auto" self-learning review forks the whole chat (private turns
+  // included) onto the session's provider with no router decision and writes skills that later sessions
+  // load (docs tools/self-learning.md; seen in the cloud Nov 15 01:10-01:32 PST, runId skill-workshop-review:*).
+  skills: { load: { extraDirs: ["/app/skills"] }, workshop: { autonomous: { mode: "off" } } },
   // Owner for owner-only commands and exec approvals (approval buttons in Telegram).
   commands: { ownerAllowFrom: ["telegram:${TELEGRAM_OWNER_ID}"] },
 
@@ -131,6 +134,10 @@
     // awk, find -exec, xargs, ...) always needs approval, even for an allowlisted binary, and never
     // becomes an allow-always rule (docs tools/exec.md "Inline eval"). Owner decision Nov 14.
     exec: { mode: "ask", strictInlineEval: true },
+    // read/write/edit/apply_patch only inside the workspace. Default false let the agent read
+    // ~/.openclaw (gateway token, ChatGPT login in SQLite) and ~/.config/a3 (gog keyring password) with
+    // no approval: canary test Nov 15 01:37 PST (docs gateway/security/tool-permissions.md).
+    fs: { workspaceOnly: true },
     web: { search: { provider: "parallel-free" } },   // must be explicit; weather uses web_fetch (core)
   },
 }

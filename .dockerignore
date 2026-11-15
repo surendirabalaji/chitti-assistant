@@ -13,6 +13,7 @@
 !deploy/jobs/catchup.mjs
 !deploy/jobs/snapshot.mjs
 !deploy/jobs/restore.mjs
+!deploy/jobs/watch.mjs
 !workspace/AGENTS.md
 !workspace/SOUL.md
 !workspace/IDENTITY.md

@@ -1,0 +1,78 @@
+Image agent:2026-11-14e on Cloud Run Instance a3-agent (us-west1), Nov 15 2026
+Source: Cloud Logging (read by the assistant with `gcloud logging read`), Telegram screenshots
+(student, 12:45 AM and 12:51 AM PST), `openclaw memory status --deep` over SSH (student).
+Redacted: chat ids, owner id, message text in logs (logs hold metadata only anyway).
+
+== Deployed image ==
+instance image digest sha256:b04688293c08dad1acff07d7a739dbe35ca1f4cdb0e08c63f10a1c748b87826c (= 2026-11-14e)
+Running since 2026-11-15T06:10:29Z ("Started instance in 12.59s")
+
+== Boot (UTC) ==
+06:10:00 ops shutdown (old container), 06:10:06 snapshot reason=shutdown
+06:10:30 ops boot node=v24.22.1 openclaw=2026.10.9 (8b18b55)
+06:10:37 ops state-restored
+06:13:28 exec-approvals-applied allowlistEntries=5; persona-applied userSeeded=False
+06:13:32 tailscale-up a3-cloud-agent 100.71.136.89
+06:13:35 gog-status accounts=1; forwarder-started 127.0.0.1:11435
+06:14:29 chatgpt-login-present
+06:17:18 [tailscale] serve enabled
+06:17:58 [gateway] http server listening (6 plugins: a3-router, memory-core, ollama, openai, parallel, telegram; 110.0s)
+06:18:33 startup outcomes: internal-hooks=loaded
+06:18-06:33 job declarations: first attempts refused ("gateway starting" / "Agent main has not
+            completed startup" / one SqliteWorkerAdmissionTimeoutError), all 6 declared on retries
+06:23:02 snapshot-failed timeout reason=first (busy boot), then snapshots every 5 min ok (~6.7 s, verified=True)
+
+== Memory test 1 (Telegram, Nov 14 10:35-10:37 PM PST) — PARTIAL ==
+06:35:16 route_decision memory-task cloud via gemma  -> ok   ("my favourite movie is ...")
+06:35:51 [hooks/session-memory] Session context saved to memory/2026-11-14-2235.md   (/new)
+06:36:10 route_decision memory-task cloud via gemma  -> route_result ok latencyMs=67876
+Reply (screenshot): said the memory check timed out, then guessed the movie. Not counted as
+recall: the guessed movie is the persona's own film. No error line in Cloud Logging.
+
+== memory status --deep (SSH, ~12:48 AM PST) ==
+Provider: openai (requested: openai), Model: text-embedding-3-small
+Indexed 8/8 files, 48 chunks, Dirty: no, Embeddings: ready, Semantic vectors: ready, FTS: ready
+=> OpenAI embeddings work with this ChatGPT login; the earlier hypothesis (embeddings not
+   authorized) was wrong; no config change made.
+
+== Memory test 2 (Telegram, Nov 15 12:49-12:51 AM PST) — PASS ==
+08:49:42 route_decision simple-task local via heuristic -> ok 14329 ms
+08:50:46 route_decision memory-task cloud via gemma     -> ok 5684 ms  (statement of a synthetic car fact)
+08:51:06 [hooks/session-memory] Session context saved to memory/2026-11-15-0051.md   (/new)
+08:51:23 route_decision memory-task cloud via gemma     -> ok 9673 ms  ("What car do I have?")
+Reply (screenshot): stated the car fact correctly in the new session, no timeout.
+Interpretation (not proven): test 1's timeout was a cold first memory_search after boot
+(index catching up on new notes on 1 vCPU). Operational rule: after a restart, send one memory
+question as a warm-up before demos.
+
+== Jobs since boot ==
+hourly (ops) at 07:00:05 and 08:00:05; hourly cloud turn tool-task cloud ok at 07:05 and 08:05;
+alert-check every 5 min (due=0).
+
+== Laptop reachability finding ==
+router health: up at 06:18:18, down 06:48:39, flapping 07:04-07:35, down 07:35:09 -> up 08:33:36.
+Forwarder: /api/tags 502 socks_timeout / socks_rep_1 while down.
+Laptop `pmset -g`: "sleep 1" (system sleep after 1 min idle unless prevented).
+=> Mac sleep cuts the local model off. Mitigation for the 48-hour run: `caffeinate -dims` in an
+   open terminal, plugged in, lid open.
+
+Not done yet: briefing run-now in the cloud, cron draft-only test.
+
+== Briefing run-now (SSH, `openclaw automations run <a3-briefing id> --wait`) ==
+Run 1 (08:58:47 UTC): completionStatus succeeded, delivered to Telegram, 23 s, openai/gpt-6-astra,
+  route tool-task cloud. Calendar, focus time and unread = "(unavailable)", weather ok.
+  Cause in gateway log 08:59:00: "[process/supervisor] spawn failed: runId=briny-sage reason=Error:
+  Spawn broker launch authority refused" (installed dist host-*.mjs: gateway refuses launch when the
+  exec request is no longer pending; reason for the cancel not determined). Only spawn failure in 2 days.
+Runs 2 and 3 (~09:03 UTC, student): all sections filled (weather, unread from the test account,
+  focus time 9:00 AM-6:00 PM) BUT "Today" said the returned events were dated Nov 14.
+
+== Calendar day bug ==
+`gog calendar events --today --json` at 01:0x AM PST returned events at 2026-11-15T00:30Z-03:20Z
+(= Nov 14 4:30-7:20 PM PST). Same output with TZ=America/Los_Angeles -> gog's --today uses the
+calendar's timezone, not the process TZ. Effect: the briefing would show yesterday evening's events,
+the 6 PM recap's --today/--tomorrow would point one day ahead. alerts.mjs unaffected (explicit --from/--to).
+Fix (student, test account Google Calendar settings, no code/redeploy): primary time zone -> Pacific.
+Check: `gog calendar calendars --json` -> "timeZone": "America/Los_Angeles" (x2); `--today` -> no events
+(correct, none on Nov 15). Focus-finder was already correct (own Pacific date filter).
+Minor, not fixed: unread lines say "body unavailable" (gmail search JSON has no preview text).

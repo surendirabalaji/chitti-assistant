@@ -40,6 +40,11 @@
         "maxLength": 500,
         "description": "Reply for a private request while the local model is down (A8)."
       },
+      "longContextHeldReply": {
+        "type": "string",
+        "maxLength": 500,
+        "description": "Reply for a private request in a chat too long for the local model (held, asks for /new)."
+      },
       "unavailableReply": {
         "type": "string",
         "maxLength": 500,

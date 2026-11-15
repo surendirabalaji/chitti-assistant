@@ -69,6 +69,12 @@ Why: cloud test on image 2026-11-14d. "Remember that I like coffee." happened to
 - No label (Gemma down, cold-start timeout, not asked): unchanged scoring fallback, so a short memory statement then goes to Gemma (laptop up) or ChatGPT (laptop down). Known limit.
 - Measured (laptop, `local/classifier-bench.mjs`, 42 synthetic cases x 3): memory 33/33, deterministic, ~150 ms warm; the 27 old cases kept exactly the same labels as on Nov 13. "Remind me to email Priya tomorrow at 9" -> memory (cloud either way); "Remember my bank PIN is 4471" -> private. Evidence `evidence/2026-11-15-classifier-bench-memory.json`.
 
+## Private + long chat = held (Nov 15, assistant-written at the student's request)
+- Rule 1 now: private (fixed pattern or Gemma label) + local up + `sessionSizeEst > longContextTokens` → `{target: "held", rule: "privacy-long-context", signals: [..., "session:large"]}`. No model; reply `longContextHeldReply` (default: chat too long for the private local model, send /new and resend). Local down → the existing `privateWhenLocalDown` policy (unchanged).
+- Why: cloud test Nov 15: private turns in a long Telegram chat reached Gemma with 38k–93k estimated tokens vs a 24.5k budget (`compact_only`) and Gemma answered an earlier message.
+- `before_agent_reply` gets `sessionId` and `cleanedBody = prompt` (verified in installed `dist/embedded-agent-*.mjs`), so the claim-first path sees the chat size. Tests: decide (5), plugin (4); 248 total.
+- Limit: Gemma-only privacy is not detected in long chats (the classifier is skipped there), so such a message still routes `long-context` → cloud.
+
 ## A7-A9 as built (Nov 13, assistant-written at the student's request)
 - **Health (A7):** `router/src/health.ts`, `GET <ollamaUrl>/api/tags` every 10 s, 3 s timeout, unknown+1 fail or up+2 fails → down, 1 success → up, `health` line on change only, probes never overlap, poller replaced on every `register` (plugin reload / config edit) and stopped on `gateway_stop`. While down, the classifier is not asked.
 - **Held (A8):** `before_agent_reply` claims `held` and `none` turns with `heldReply` / `unavailableReply` (`{ handled: true, reply: { text } }`). **Verified order (laptop): `before_agent_reply` runs BEFORE `before_model_resolve`**, so the claim decides itself (fixed checks) and writes both `route_decision` (model `none`) and `route_result` (ok false, error `held` / `cloud-unavailable`). `toOverride` still pins held/none to local as a second line of defence.
