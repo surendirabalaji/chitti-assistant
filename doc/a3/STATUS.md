@@ -1,8 +1,10 @@
 # Status
 
-Last updated: **Sun Nov 15, 2026, ~4:20 AM PST** (image **2026-11-15b deployed and retested**; student sleeping until 8 AM; next: wake-up checklist below, start the 48-hour run by 9 AM PST).
+Last updated: **Sun Nov 15, 2026, ~8:50 AM PST**.
 
-## Wake-up checklist (Sun Nov 15, 8 AM PST)
+**48-HOUR RUN STARTED Sun Nov 15, 8:45 AM PST (16:45 UTC)** on image 2026-11-15b, 1 vCPU. Planned end **Tue Nov 17, 8:45 AM PST**. **No restarts, redeploys, config edits or SSH changes on the cloud agent until then.** Keep the Mac plugged in, lid open, `caffeinate -dims` running, laptop gateway off. Warm-up passed (local 41 s cold, cloud 17 s, memory 80 s); overnight snapshots, hourly turns and the 7:30 briefing all ran (`evidence/2026-11-15-48h-run-start.txt`). Known: duplicate health lines (two pollers, unexplained). Next: M8 grader access + docs/README/audit, video Mon.
+
+## Wake-up checklist (Sun Nov 15, 8 AM PST) — done 8:45 AM
 1. Read Cloud Logging: a snapshot succeeded after 11:45 UTC (last good `snap-20261115T114542818Z`; 4 failed 11:53–12:09 UTC while chatting; next retry expected ~12:24 UTC by OpenClaw's error backoff, then 60 min). If none succeeded by 8 AM: run the snapshot job once over SSH (`openclaw cron run <a3-state-snapshot id> --wait`, as user agent), close SSH.
 2. The 7:30 AM briefing arrived in Telegram (free check of the cron path).
 3. Mac: restart, plugged in, lid open, Low Power off; Ollama app; `ollama ps`; `curl -s http://127.0.0.1:11434/api/tags`; `tailscale status`; `tailscale serve status` (TCP 11434 → 127.0.0.1:11434); `caffeinate -dims`; laptop gateway stays off.

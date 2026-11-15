@@ -1,0 +1,27 @@
+2026-11-15 48-hour run start (cloud agent image 2026-11-15b, 1 vCPU)
+=====================================================================
+Read by the assistant from Cloud Logging (read-only). Owner chat id not copied.
+
+Overnight (12:17-16:37 UTC = 4:17-8:37 AM PST), one container (…c807019fa419), no restarts:
+- Snapshots recovered 12:24:24 UTC (after 4 timeouts 11:53-12:09 during chat) and ran every ~6 min;
+  one timeout 16:07:51, next ok 16:10:08. Latest before start: snap-20261115T163439568Z.
+- Hourly cloud turns 13:05, 14:05, 15:05, 16:05 (tool-task cloud ok).
+- Briefing 15:30:01 UTC (7:30 AM PST): tool-task cloud, route_result ok; Telegram message received
+  (student screenshot): no events, focus 9:00 AM-6:00 PM, LA weather, 3 unread (bodies shown as
+  "Body not available in search results": cosmetic).
+- Router health flapped up/down 14:22-15:39 UTC (Mac sleep wake-ups; nobody chatting); up from 16:37:13.
+- Finding: every health line appears twice a few ms apart (two health pollers in the gateway process,
+  cause not investigated; routing unaffected). Audit/known-issue item.
+
+Laptop (student, 8:4x AM): `ollama ps` empty (Gemma unloaded, loads on demand); `tailscale serve status`
+tcp 11434 -> 127.0.0.1:11434 (tailnet only); `caffeinate -dims` running.
+
+Warm-up (Telegram, student screenshots + router lines):
+16:41:46 session_reset cleared:true (session_end) ; 16:41:57 session_reset (before_reset) cleared:false   (/new)
+16:42:43 simple-task   local  heuristic size 0     -> ollama/gemma4-a3:e2b ok 41.4 s (cold load) "thirty-five"
+16:43:40 reasoning-heavy cloud gemma size 12740    -> openai/gpt-6-astra ok 17.0 s (sky explanation)
+16:44:11 memory-task   cloud gemma size 14455      -> openai/gpt-6-astra ok 79.9 s "Your favourite colour is blue."
+  ("Model Fallback" / "Model Fallback cleared" banners: cosmetic, known.)
+
+48-HOUR RUN START: Sun Nov 15, 2026, 8:45 AM PST (16:45 UTC), after the last warm-up reply.
+Planned end: Tue Nov 17, 2026, 8:45 AM PST. No restarts/redeploys in between (AGENTS.md rule 8).
