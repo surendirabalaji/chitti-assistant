@@ -1,0 +1,34 @@
+# M5 ClawHub publish prep, 2026-11-14 14:24 PST (assistant ran on the laptop, student approved the install)
+$ npm i -g clawhub@0.24.1 --before=2026-10-30   -> changed 54 packages
+$ npm ls -g clawhub   -> clawhub@0.24.1 (CLI banner: ClawHub CLI v0.24.1 (99224898))
+$ clawhub search focus-finder   -> (no results)
+$ clawhub inspect focus-finder
+Skill not found or unavailable to this account.
+Error: Skill not found or unavailable to this account.
+$ clawhub skill publish ./skills/focus-finder --version 1.0.0 --dry-run   -> "Error: Path must be a folder" (relative path quirk in 0.24.1; absolute path works)
+$ clawhub skill publish "$(pwd)/skills/focus-finder" --version 1.0.0 --dry-run --json
+{
+  "ok": true,
+  "status": "would-publish",
+  "slug": "focus-finder",
+  "displayName": "Focus Finder",
+  "folder": "~/Desktop/chitti-assistant/skills/focus-finder",
+  "version": "1.0.0",
+  "latestVersion": null,
+  "fileCount": 4,
+  "fingerprint": "fc50c608c98fcf61e897041e8c754982f05858e2056f614cdb066cd46ca53a11"
+}
+
+## Publish (student ran, 2026-11-14 ~14:27 PST; logged in as ClawHub user "surendirabalaji")
+$ clawhub skill publish "$PWD/skills/focus-finder" --version 1.0.0 --changelog "Initial release: read-only free-time finder (45+ min, 9–6 Pacific)" --tags latest
+✔ Update submitted for focus-finder@1.0.0; pending security scans before it becomes public.
+
+$ clawhub inspect @surendirabalaji/focus-finder --json   (assistant, a few minutes later)
+moderation: verdict "clean", isSuspicious false, isMalwareBlocked false, summary "No suspicious patterns detected.",
+engineVersion v2.4.27, legacyReason "pending.publication"; skill/version still null (not public yet).
+
+## Public (2026-11-14 14:34 PST, assistant check)
+$ clawhub inspect @surendirabalaji/focus-finder --json
+skill.slug "focus-finder", tags.latest "1.0.0", latestVersion.version "1.0.0", license "MIT-0", owner.handle "surendirabalaji"
+Public page: https://clawhub.ai/surendirabalaji/focus-finder  (HTTP 200; shows "Security audit: Pass", "Current version v1.0.0",
+"License MIT-0", install command "openclaw skills install @surendirabalaji/focus-finder")

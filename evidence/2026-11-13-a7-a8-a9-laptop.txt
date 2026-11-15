@@ -1,0 +1,56 @@
+Lessons A7 (health poller), A8 (held reply), A9 (route_result + rate-limit switch) on the laptop gateway.
+Run by the assistant, Nov 13 2026 ~12:15-12:35 PM PST (20:15-20:35 UTC). Code assistant-written at the student's request.
+Router lines read from the metadata-only mirror file /tmp/a3-router.log (plugin config logMirrorFile); the
+gateway's stdout has the same lines. Ollama quit by the STUDENT via the menu bar (an osascript quit was
+cancelled); reopened by the assistant with `open -a Ollama`. npm test: 197 passed (3 runs).
+
+A9 normal turns (`openclaw agent`, plugin generation 10):
+  20:19:49 route_decision acb99e86 simple-task  local  ollama/gemma4-a3:e2b via=heuristic (classifier timeout 2002 ms: Gemma unloaded)
+  20:20:02 route_result   acb99e86 simple-task  local  ollama/gemma4-a3:e2b ok=true 12159 ms
+  20:20:03 route_decision 204c3274 reasoning-heavy cloud openai/gpt-6-astra via=gemma
+  20:20:13 route_result   204c3274 reasoning-heavy cloud openai/gpt-6-astra ok=true 9489 ms
+Rate-limit switch (`openclaw config set plugins.entries.a3-router.config '{...,"simulateRateLimit":true}' --strict-json`, hot reload, no restart):
+  20:20:21 route_decision 35840191 cloud-rate-limited local ollama/gemma4-a3:e2b rateLimitSimulated=true
+  20:20:30 route_result   35840191 cloud-rate-limited local ollama/gemma4-a3:e2b ok=true 8383 ms
+  switch off -> 20:20:38 reasoning-heavy cloud openai/gpt-6-astra, result ok=true 7793 ms
+  Message words in the log: grep "sky is blue|12 times" -> 0.
+
+A7 health:
+  Ollama quit (student) -> 20:22:32 health up->down failures=2 error=network
+  open -a Ollama 20:23:59 -> 20:24:08 health down->up (one probe, ~10 s)
+  Reloads/config edits: Ollama server log shows one 10 s /api/tags series after several reloads (no leaked pollers);
+  the 30 s series is OpenClaw's own Ollama provider.
+
+A8 held (Ollama off):
+  first run: reply = held text in 1.3 s, route_result held/none/ok=false, but NO route_decision line ->
+    OpenClaw runs before_agent_reply BEFORE before_model_resolve in this path (fix: the claim logs the decision).
+  after fix (generation 14):
+    20:23:46 route_decision e8510f38 privacy-local-unavailable held model=none via=fixed signals=[privacy:word, privacy:secret-value]
+    20:23:46 route_result   e8510f38 privacy-local-unavailable held servedModel=none ok=false error=held
+  simple task while down: route_decision local-unavailable cloud openai/gpt-6-astra, result ok=true, reply "108".
+  Ollama back: 'This is confidential: say "back online" in three words.' -> privacy-sensitive local,
+    route_result ok=true 13148 ms, reply "back online"; ollama ps: gemma4-a3:e2b 100% GPU 32768.
+
+Fallback-leak test (health check OFF so the router still routes local; Ollama quit by the student):
+  "This is confidential: my bank PIN is [redacted], just say ok." -> provider overridden to ollama; OpenClaw
+  "transient same-model retry 1/8..7/8 for ollama/gemma4-a3:e2b reason=timeout", then failover decision ->
+  "Couldn't connect to the AI service" (85.7 s). NO gpt-6-astra call: OpenClaw does not retry a failed
+  local turn on ChatGPT.
+  BUT 20:26:12 [model-fetch] provider=openai model=gpt-5.6-luna status=403: the unset utility model (dashboard
+  titles/narration, not routed by the plugin) sent a request to ChatGPT during the private turn.
+  Fix: agents.defaults.utilityModel = "ollama/gemma4-a3:e2b" (laptop config + deploy template).
+  Re-test (held, Ollama off, generation 19): route_decision/route_result held; gateway log since the send:
+  0 lines matching model-fetch|provider overridden|utility|title|gpt-|openai.
+
+A9 failure detection (hook trace to the mirror file, traceHooks=true):
+  Ollama off, health check off, "Name a planet.": 9 attempts traced; EACH attempt = model_call_ended outcome=error
+  then agent_end success=true durationMs 20-43 (per attempt). No final hook when OpenClaw gives up.
+  Old code logged route_result ok=true after 50 ms (wrong). New rule: ok only if the attempt's last model call
+  completed; else final failure after 45 s without a new attempt:
+    20:32:21 route_decision bbbf4d23 simple-task local
+    20:34:25 route_result   bbbf4d23 simple-task local ollama/gemma4-a3:e2b ok=false latencyMs=79786 error=Error
+  (A heartbeat turn at 20:34:03 routed tool-task/trigger:cron -> cloud, ok=true 2700 ms.)
+
+Laptop config after the tests: plugins.entries.a3-router.config = {"logMirrorFile":"/tmp/a3-router.log"},
+agents.defaults.utilityModel = "ollama/gemma4-a3:e2b", Ollama running, health up.
+NOT verified: the cloud container (needs rebuild + redeploy), the dashboard UI showing the held reply.

@@ -1,0 +1,18 @@
+M4 step 2 (gog) image changes, local checks only (nothing deployed). Assistant-run, Nov 13 2026 ~6:35 PM PST.
+Files: deploy/Dockerfile (gog v0.47.1 via ADD --checksum sha256 279bc3a03c1919d774e268ef229949f45b753a0e21257f9fb315b05be7a40ea9,
+real binary /usr/local/lib/gogcli/gog, env GOG_HOME=/mnt/state/gogcli GOG_KEYRING_BACKEND=file DBUS_SESSION_BUS_ADDRESS=disabled:),
+deploy/gog-agent.sh (installed as /usr/local/bin/gog: --gmail-no-send --no-input, password from a 0600 file),
+deploy/startup.sh (gog secrets -> 0600 password file + client stored into GOG_HOME, both env vars unset; gog-status = account count),
+deploy/LOGIN.md (gog --manual sign-in over instance SSH as user agent), .dockerignore (+ gog-agent.sh).
+
+Pinned binary on the laptop (darwin_arm64, checksum OK, temp dir): --gmail-no-send blocks `gmail send`, `gmail drafts send` and the
+`send` shortcut with exit 2 before any auth/network ("Gmail sending is blocked by --gmail-no-send"); `gmail search` proceeds to auth.
+bash -n + shellcheck (koalaman/shellcheck:stable) clean for startup.sh and gog-agent.sh.
+Image chitti-a3-agent:m4-dev (linux/amd64): gog v0.47.1 (cbb7f01f); real binary root-owned, not writable by user agent; the wrapper
+blocks both send paths; with a FAKE client JSON and a temp GOG_HOME: `auth credentials set` ok (client secret goes into the keyring),
+`auth list --json` -> {"accounts": []}.
+Bug found and fixed by this test: `auth credentials set` needs GOG_KEYRING_PASSWORD (client secret stored in the keyring); startup.sh
+had already unset it. After the fix, the startup.sh gog sections run in isolation with fake secrets:
+  {"event":"gog-client-stored"} {"event":"gog-status","accounts":"0"}; GOG_KEYRING_PASSWORD and GOG_OAUTH_CLIENT_JSON unset afterwards;
+  ~/.config/a3/gog-keyring-password mode 0600; temp client file removed.
+Not verified: the bucket (gcsfuse) as GOG_HOME, the real OAuth sign-in, Gmail/Calendar API calls, exec approval for gog in the agent.

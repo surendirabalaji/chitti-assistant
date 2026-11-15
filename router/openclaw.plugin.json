@@ -7,6 +7,67 @@
   },
   "configSchema": {
     "type": "object",
-    "additionalProperties": false
+    "additionalProperties": false,
+    "properties": {
+      "classifier": {
+        "type": "boolean",
+        "description": "Ask local Gemma to label each message (router v2). Default true."
+      },
+      "classifierUrl": {
+        "type": "string",
+        "description": "Deprecated alias of ollamaUrl."
+      },
+      "classifierTimeoutMs": {
+        "type": "number",
+        "minimum": 200,
+        "maximum": 10000,
+        "description": "Classifier time limit; on timeout the scoring fallback decides. Default 2000."
+      },
+      "ollamaUrl": {
+        "type": "string",
+        "description": "Loopback Ollama base URL for health checks and the classifier: http://127.0.0.1:11434 (laptop) or http://127.0.0.1:11435 (container forwarder)."
+      },
+      "healthCheck": {
+        "type": "boolean",
+        "description": "Poll <ollamaUrl>/api/tags every 10 s (A7). Default true."
+      },
+      "simulateRateLimit": {
+        "type": "boolean",
+        "description": "Demo switch (A9): pretend the cloud is rate-limited. Default false."
+      },
+      "heldReply": {
+        "type": "string",
+        "maxLength": 500,
+        "description": "Reply for a private request while the local model is down (A8)."
+      },
+      "unavailableReply": {
+        "type": "string",
+        "maxLength": 500,
+        "description": "Reply when the cloud is (simulated) rate-limited and local is down."
+      },
+      "logMirrorFile": {
+        "type": "string",
+        "pattern": "^/tmp/a3-router[A-Za-z0-9_.-]*\\.log$",
+        "description": "Optional copy of router log lines (metadata only) for laptop testing."
+      },
+      "traceHooks": {
+        "type": "boolean",
+        "description": "Laptop debugging: write hook arrival metadata to logMirrorFile only. Default false."
+      },
+      "privateWhenLocalDown": {
+        "type": "string",
+        "enum": [
+          "cloud",
+          "held"
+        ],
+        "description": "Private message while local Gemma is down: 'cloud' (ChatGPT answers, default) or 'held' (no model; heldReply)."
+      },
+      "followupWindowMs": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 3600000,
+        "description": "Follow-up rule: a reply to a question the cloud model asked in a tool/reasoning task within this many ms stays on the cloud (Gemma verifies it). 0 = off. Default 300000."
+      }
+    }
   }
 }

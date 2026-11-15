@@ -1,0 +1,37 @@
+# M4 step 4: Parallel Search (Free) on the laptop, 2026-11-14 (run by the assistant)
+
+$ openclaw plugins install @openclaw/parallel-plugin@2026.10.9 --pin
+Installed plugin: parallel  (inspect: version 2026.10.9, trust trusted-official, webSearchProviderIds [parallel, parallel-free])
+
+$ openclaw config set tools.web.search.provider parallel-free
+
+## Agent turn BEFORE gateway restart (08:07:43Z): router tool-task -> cloud openai/gpt-6-astra; reply said 'Web search was unavailable' and used web_fetch instead.
+Gateway log at hot reload: [WEB_SEARCH_PROVIDER_INVALID_AUTODETECT] tools.web.search.provider is "parallel-free". No provider will be selected.
+Cause (dist/runtime-web-tools-Ez2arx_V.mjs): with install records present, providers come from the gateway's in-memory manifest registry, which predates the install. 'plugins registry --refresh' + re-set did not help the running gateway.
+
+$ openclaw infer web providers   (fresh process)
+      "id": "parallel",
+      "envVars": [
+        "PARALLEL_API_KEY"
+      ]
+    },
+--
+      "id": "parallel-free",
+      "envVars": []
+    }
+  ],
+  "fetch": []
+
+$ openclaw infer web search --query "most recent Formula 1 race winner November 2026" --limit 3 --json  (trimmed: provider, timing, titles, urls)
+  "ok": true,
+  "provider": "parallel-free",
+        "provider": "parallel-free",
+        "count": 3,
+        "tookMs": 1004,
+          "untrusted": true,
+          "provider": "parallel-free",
+            "url": "https://www.formula1.com/en/results/2026/races/1299/brazil/race-result",
+            "url": "https://www.formula1.com/en/latest/article/norris-beats-verstappen-in-wet-sao-paulo-gp-thriller-as-mercedes-win-constructors-championship.7JN7MXLZf5lk5l0C3gfKGI",
+            "published": "2026-11-08",
+            "url": "https://english.news.cn/20261109/a496e54b6d2d45c2b10095f219f90f6d/c.html",
+            "published": "2026-11-09",

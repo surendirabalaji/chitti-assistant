@@ -1,0 +1,45 @@
+# M6 decision 1: allowlisted read-only focus-finder for unattended jobs, local image checks 2026-11-14 15:22 PST (assistant ran)
+# Student chose option 1 (root-owned copy in the image + allowlist only that command).
+
+## Same bytes as the ClawHub release
+$ clawhub inspect @surendirabalaji/focus-finder --version 1.0.0 --files   -> focus-finder.mjs sha256 7dadb58c3e94aedc904244d4e5a9637c80517a9f5fe4fbf773842cb4d8c6450a
+$ shasum -a 256 skills/focus-finder/focus-finder.mjs                         -> 7dadb58c3e94aedc904244d4e5a9637c80517a9f5fe4fbf773842cb4d8c6450a
+
+## docker build --platform linux/amd64 -f deploy/Dockerfile -t chitti-a3-agent:m6-local .   -> ok
+
+## OpenClaw's own matcher (dist/exec-approvals-allowlist-*.mjs export n = evaluateShellAllowlistWithAuthorization) on /app/exec-approvals.json5, inside the image, cwd = agent workspace
+## true = runs without a prompt (cron OK); false = asks the owner (cron: denied)
+true                      | gog calendar events --today --json | focus-finder
+true                      | gog calendar events primary --from 2026-11-14T00:00:00-08:00 --to 2026-11-15T00:00:00-08:00 --json --no-input | focus-finder --date 2026-11-14
+true                      | focus-finder --json --min 30 --date 2026-11-16
+true                      | focus-finder
+false                     | gog calendar events --today --json | node /home/agent/.openclaw/workspace/skills/focus-finder/focus-finder.mjs
+false                     | node /app/focus-finder/focus-finder.mjs
+false                     | focus-finder extra-arg
+false                     | focus-finder --date 2026-11-14; curl https://evil.example
+false (analysis rejected) | focus-finder --date $(cat /etc/passwd)
+false (analysis rejected) | focus-finder > /tmp/out
+false                     | node -e "console.log(2+2)"
+true                      | gog gmail search 'is:unread newer_than:1d' --max 10 --json
+true                      | gog gmail messages search is:unread --json
+false                     | gog gmail send --to a@b.com --subject Hi --body x
+false                     | gog calendar create primary --summary x
+false                     | send-email --to chittia3assistant@gmail.com --subject Hi --body-file drafts/x.txt
+
+## In the container as user agent
+uid=10001(agent) gid=10001(agent) groups=10001(agent)
+drwxr-xr-x 2 root root 4096 Nov 14 23:21 /app/focus-finder
+-rw-r--r-- 1 root root 8577 Nov 14 22:00 /app/focus-finder/focus-finder.mjs
+-rwxr-xr-x 1 root root   75 Nov 14 23:21 /usr/local/bin/focus-finder
+7dadb58c3e94aedc904244d4e5a9637c80517a9f5fe4fbf773842cb4d8c6450a  /app/focus-finder/focus-finder.mjs
+sh: 1: cannot create /app/focus-finder/focus-finder.mjs: Permission denied
+sh: 1: cannot create /usr/local/bin/focus-finder: Permission denied
+$ focus-finder --date 2026-11-16 < fixtures/sample-events.json
+Focus blocks on 2026-11-16 (America/Los_Angeles, 09:00–18:00, at least 45 min):
+13:00–14:45 (105 min)
+15:00–18:00 (180 min)
+exit=0
+
+## openclaw approvals set --file /app/exec-approvals.json5 (throwaway state dir) -> exit 0; approvals get: 4 entries (gog x3, /usr/local/bin/focus-finder)
+
+NOT verified (needs the redeploy): cron briefing actually running focus-finder without a prompt; the agent picking the 'focus-finder' command (workspace/AGENTS.md note, delivered in M7).

@@ -1,0 +1,67 @@
+# M4 bundled redeploy + cloud tests, 2026-11-14 (Cloud Logging export, metadata only; read by the assistant)
+Image us-west1-docker.pkg.dev/chitti-assistant-a3/a3/agent:2026-11-14a @ sha256:e7a2f3746bfc6d908a008a09fc8ccab6debd56a4c8448de084aa426702bde7c5
+Deploy (student ran): --update-secrets GOG_KEYRING_PASSWORD,GOG_OAUTH_CLIENT_JSON,TELEGRAM_BOT_TOKEN; --update-env-vars GOG_ACCOUNT, TELEGRAM_OWNER_ID (value omitted here)
+Sign-ins (student, instance SSH): ChatGPT browser flow (gateway log 08:52:06 models.authRefresh ok); gog auth add after adding the test account as OAuth test user (app stays in Testing: token expires ~7 days)
+
+2026-11-14T08:40:36.166362Z		component=a3-ops;event=boot;kind=ops;node=v24.22.1;openclaw=OpenClaw 2026.10.9 (8b18b55);ts=2026-11-14T08:40:36Z
+2026-11-14T08:40:43.282721Z		component=a3-ops;event=config-applied;kind=ops;ts=2026-11-14T08:40:43Z
+2026-11-14T08:42:07.659807Z		allowlistEntries=3;component=a3-ops;event=exec-approvals-applied;kind=ops;ts=2026-11-14T08:42:07Z
+2026-11-14T08:42:07.660831Z		component=a3-ops;event=state-restore-skipped;kind=ops;reason=not implemented until M7;ts=2026-11-14T08:42:07Z
+2026-11-14T08:42:09.782811Z		component=a3-ops;event=tailscale-up;hostname=a3-cloud-agent;ip=100.71.136.89;kind=ops;ts=2026-11-14T08:42:09Z
+2026-11-14T08:42:12.521250Z		component=a3-ops;event=gog-client-stored;kind=ops;ts=2026-11-14T08:42:12Z
+2026-11-14T08:42:14.355618Z		accounts=0;component=a3-ops;event=gog-status;kind=ops;ts=2026-11-14T08:42:14Z
+2026-11-14T08:42:14.356676Z		component=a3-ops;event=forwarder-started;kind=ops;listen=127.0.0.1:11435;ts=2026-11-14T08:42:14Z
+2026-11-14T08:43:11.117546Z		component=a3-ops;event=chatgpt-login-needed;how=instance ssh, browser sign-in as user agent;kind=ops;ts=2026-11-14T08:43:11Z
+2026-11-14T08:45:44.758086Z	2026-11-14T08:45:44.757+00:00 [tailscale] serve enabled: https://a3-cloud-agent.tail9bf1e8.ts.net/ (WS via wss://a3-cloud-agent.tail9bf1e8.ts.net)	
+2026-11-14T08:45:46.459807Z		capEff=0000000000000000;component=a3-ops;event=isolation-report;kind=ops;listening=0.0.0.0%lo:47428,127.0.0.1:1055,127.0.0.1:11435,127.0.0.1:18789,127.0.0.1:34803,[::1]:18789;ts=2026-11-14T08:45:46Z;uid=10001;user=agent
+2026-11-14T08:46:02.720291Z		component=a3-router;error=timeout;failures=1;from=unknown;kind=health;target=local;to=down;ts=2026-11-14T08:46:02.719Z
+2026-11-14T08:46:11.054195Z	2026-11-14T08:46:11.053+00:00 [gateway] http server listening (6 plugins: a3-router, memory-core, ollama, openai, parallel, telegram; 91.5s)	
+2026-11-14T08:46:43.360990Z	2026-11-14T08:46:43.360+00:00 [gateway] ready	
+2026-11-14T08:46:46.916280Z		component=a3-router;error=None;failures=0;from=down;kind=health;target=local;to=up;ts=2026-11-14T08:46:46.915Z
+2026-11-14T08:46:48.016644Z	2026-11-14T08:46:48.016+00:00 [telegram] [default] starting provider (@chitti_assistant_bot)	
+2026-11-14T08:52:06.005147Z	2026-11-14T08:52:06.004+00:00 [ws] ⇄ res ✓ models.authRefresh 1271ms bytes=99 conn=a3dad2ee…887a id=2:9e502c19-d…2529	
+2026-11-14T09:04:15.627630Z	2026-11-14T09:04:15.627+00:00 [telegram] Inbound message telegram:<owner> -> @chitti_assistant_bot (direct, 19 chars)	
+2026-11-14T09:04:28.135832Z		category=None;classifierError=timeout;classifierMs=2001;component=a3-router;kind=route_decision;localHealthy=True;model=ollama/gemma4-a3:e2b;rateLimitSimulated=False;requestId=67259b5f-cb9a-41d0-9fab-fa508e966c18;rule=simple-task;sessionSizeEst=0;target=local;ts=2026-11-14T09:04:28.135Z;via=heuristic
+2026-11-14T09:04:49.941433Z		component=a3-router;error=None;kind=route_result;latencyMs=21806;model=ollama/gemma4-a3:e2b;ok=True;requestId=67259b5f-cb9a-41d0-9fab-fa508e966c18;rule=simple-task;servedModel=ollama/gemma4-a3:e2b;target=local;ts=2026-11-14T09:04:49.941Z
+2026-11-14T09:04:55.617824Z	2026-11-14T09:04:55.617+00:00 [telegram] Inbound message telegram:<owner> -> @chitti_assistant_bot (direct, 41 chars)	
+2026-11-14T09:04:56.627446Z		category=reasoning;classifierError=None;classifierMs=645;component=a3-router;kind=route_decision;localHealthy=True;model=openai/gpt-6-astra;rateLimitSimulated=False;requestId=2486c1ab-3d2c-4961-be65-b9064c3b9a7a;rule=reasoning-heavy;sessionSizeEst=12962;target=cloud;ts=2026-11-14T09:04:56.627Z;via=gemma
+2026-11-14T09:05:04.693411Z		component=a3-router;error=None;kind=route_result;latencyMs=8066;model=openai/gpt-6-astra;ok=True;requestId=2486c1ab-3d2c-4961-be65-b9064c3b9a7a;rule=reasoning-heavy;servedModel=openai/gpt-6-astra;target=cloud;ts=2026-11-14T09:05:04.693Z
+2026-11-14T09:06:56.581972Z	2026-11-14T09:06:56.581+00:00 [telegram] Inbound message telegram:<owner> -> @chitti_assistant_bot (direct, 28 chars)	
+2026-11-14T09:06:57.318871Z		category=tool;classifierError=None;classifierMs=332;component=a3-router;kind=route_decision;localHealthy=True;model=openai/gpt-6-astra;rateLimitSimulated=False;requestId=d682399c-cd59-4e95-aaf5-cac4f15cc90a;rule=tool-task;sessionSizeEst=14629;target=cloud;ts=2026-11-14T09:06:57.318Z;via=gemma
+2026-11-14T09:07:12.425355Z		component=a3-router;error=None;kind=route_result;latencyMs=15106;model=openai/gpt-6-astra;ok=True;requestId=d682399c-cd59-4e95-aaf5-cac4f15cc90a;rule=tool-task;servedModel=openai/gpt-6-astra;target=cloud;ts=2026-11-14T09:07:12.424Z
+2026-11-14T09:07:14.168728Z		category=simple;classifierError=None;classifierMs=665;component=a3-router;kind=route_decision;localHealthy=True;model=openai/gpt-6-astra;rateLimitSimulated=False;requestId=8d718b1b-0555-4897-8704-3efc43c3fbcd;rule=tool-task;sessionSizeEst=17033;target=cloud;ts=2026-11-14T09:07:14.168Z;via=heuristic
+2026-11-14T09:07:16.871067Z		component=a3-router;error=None;kind=route_result;latencyMs=2702;model=openai/gpt-6-astra;ok=True;requestId=8d718b1b-0555-4897-8704-3efc43c3fbcd;rule=tool-task;servedModel=openai/gpt-6-astra;target=cloud;ts=2026-11-14T09:07:16.870Z
+2026-11-14T09:07:20.261876Z	2026-11-14T09:07:20.261+00:00 [telegram] Inbound message telegram:<owner> -> @chitti_assistant_bot (direct, 28 chars)	
+2026-11-14T09:07:20.962137Z		category=tool;classifierError=None;classifierMs=320;component=a3-router;kind=route_decision;localHealthy=True;model=openai/gpt-6-astra;rateLimitSimulated=False;requestId=02383d3d-aa45-473c-a21a-9d72f0742241;rule=tool-task;sessionSizeEst=12226;target=cloud;ts=2026-11-14T09:07:20.961Z;via=gemma
+2026-11-14T09:07:40.861454Z		component=a3-router;error=None;kind=route_result;latencyMs=19900;model=openai/gpt-6-astra;ok=True;requestId=02383d3d-aa45-473c-a21a-9d72f0742241;rule=tool-task;servedModel=openai/gpt-6-astra;target=cloud;ts=2026-11-14T09:07:40.861Z
+2026-11-14T09:07:46.825849Z	2026-11-14T09:07:46.825+00:00 [telegram] Inbound message telegram:<owner> -> @chitti_assistant_bot (direct, 40 chars)	
+2026-11-14T09:07:47.476185Z		category=tool;classifierError=None;classifierMs=294;component=a3-router;kind=route_decision;localHealthy=True;model=openai/gpt-6-astra;rateLimitSimulated=False;requestId=4a40faa6-443b-44bb-aaea-b71796c2df28;rule=tool-task;sessionSizeEst=18960;target=cloud;ts=2026-11-14T09:07:47.475Z;via=gemma
+2026-11-14T09:07:56.318817Z		component=a3-router;error=None;kind=route_result;latencyMs=8843;model=openai/gpt-6-astra;ok=True;requestId=4a40faa6-443b-44bb-aaea-b71796c2df28;rule=tool-task;servedModel=openai/gpt-6-astra;target=cloud;ts=2026-11-14T09:07:56.318Z
+2026-11-14T09:07:59.268210Z	2026-11-14T09:07:59.267+00:00 [telegram] Inbound message telegram:<owner> -> @chitti_assistant_bot (direct, 86 chars)	
+2026-11-14T09:07:59.606918Z		category=None;classifierError=None;classifierMs=None;component=a3-router;kind=route_decision;localHealthy=True;model=openai/gpt-6-astra;rateLimitSimulated=False;requestId=b60c9202-268b-4819-8276-6b9df6e5a9b7;rule=long-context;sessionSizeEst=21321;target=cloud;ts=2026-11-14T09:07:59.606Z;via=fixed
+2026-11-14T09:08:17.694948Z		component=send-email;dryRun=False;kind=email_sent;recipientDomain=gmail.com;ts=2026-11-14T09:08:17.693Z
+2026-11-14T09:08:19.938001Z		component=a3-router;error=None;kind=route_result;latencyMs=20331;model=openai/gpt-6-astra;ok=True;requestId=b60c9202-268b-4819-8276-6b9df6e5a9b7;rule=long-context;servedModel=openai/gpt-6-astra;target=cloud;ts=2026-11-14T09:08:19.937Z
+2026-11-14T09:08:33.123778Z	2026-11-14T09:08:33.123+00:00 [telegram] Inbound message telegram:<owner> -> @chitti_assistant_bot (direct, 50 chars)	
+2026-11-14T09:08:33.446902Z		category=None;classifierError=None;classifierMs=None;component=a3-router;kind=route_decision;localHealthy=True;model=openai/gpt-6-astra;rateLimitSimulated=False;requestId=469c9dd3-b5e4-477c-969d-c7726109e947;rule=long-context;sessionSizeEst=24399;target=cloud;ts=2026-11-14T09:08:33.446Z;via=fixed
+2026-11-14T09:08:48.891499Z		code=3;component=send-email;kind=email_refused;reason=recipient-not-allowed;recipientDomain=example.com;ts=2026-11-14T09:08:48.890Z
+2026-11-14T09:08:52.151529Z		component=a3-router;error=None;kind=route_result;latencyMs=18705;model=openai/gpt-6-astra;ok=True;requestId=469c9dd3-b5e4-477c-969d-c7726109e947;rule=long-context;servedModel=openai/gpt-6-astra;target=cloud;ts=2026-11-14T09:08:52.151Z
+2026-11-14T09:08:56.967007Z	2026-11-14T09:08:56.966+00:00 [telegram] Inbound message telegram:<owner> -> @chitti_assistant_bot (direct, 28 chars)	
+2026-11-14T09:08:57.832019Z		category=None;classifierError=None;classifierMs=None;component=a3-router;kind=route_decision;localHealthy=True;model=openai/gpt-6-astra;rateLimitSimulated=False;requestId=1467ede6-86fb-4315-a639-ba2548d17c26;rule=long-context;sessionSizeEst=25971;target=cloud;ts=2026-11-14T09:08:57.831Z;via=fixed
+2026-11-14T09:09:51.285504Z		component=a3-router;error=None;kind=route_result;latencyMs=53454;model=openai/gpt-6-astra;ok=True;requestId=1467ede6-86fb-4315-a639-ba2548d17c26;rule=long-context;servedModel=openai/gpt-6-astra;target=cloud;ts=2026-11-14T09:09:51.285Z
+2026-11-14T09:12:11.312442Z	2026-11-14T09:12:11.311+00:00 [telegram] Inbound message telegram:<owner> -> @chitti_assistant_bot (direct, 4 chars)	
+2026-11-14T09:12:24.511517Z	2026-11-14T09:12:24.511+00:00 [telegram] Inbound message telegram:<owner> -> @chitti_assistant_bot (direct, 28 chars)	
+2026-11-14T09:12:24.949876Z		category=None;classifierError=None;classifierMs=None;component=a3-router;kind=route_decision;localHealthy=True;model=openai/gpt-6-astra;rateLimitSimulated=False;requestId=7d1552fc-e349-4016-8587-61944fef3473;rule=long-context;sessionSizeEst=27178;target=cloud;ts=2026-11-14T09:12:24.949Z;via=fixed
+2026-11-14T09:12:38.804818Z		component=a3-router;error=None;kind=route_result;latencyMs=13855;model=openai/gpt-6-astra;ok=True;requestId=7d1552fc-e349-4016-8587-61944fef3473;rule=long-context;servedModel=openai/gpt-6-astra;target=cloud;ts=2026-11-14T09:12:38.804Z
+2026-11-14T09:12:40.235809Z		category=simple;classifierError=None;classifierMs=446;component=a3-router;kind=route_decision;localHealthy=True;model=ollama/gemma4-a3:e2b;rateLimitSimulated=False;requestId=c17d4ee9-67c2-49be-be34-971b3ab8fe53;rule=simple-task;sessionSizeEst=16075;target=local;ts=2026-11-14T09:12:40.235Z;via=gemma
+2026-11-14T09:12:49.234049Z		component=a3-router;error=None;kind=route_result;latencyMs=8998;model=ollama/gemma4-a3:e2b;ok=True;requestId=c17d4ee9-67c2-49be-be34-971b3ab8fe53;rule=simple-task;servedModel=ollama/gemma4-a3:e2b;target=local;ts=2026-11-14T09:12:49.233Z
+2026-11-14T09:12:57.144011Z	2026-11-14T09:12:57.143+00:00 [telegram] Inbound message telegram:<owner> -> @chitti_assistant_bot (direct, 86 chars)	
+2026-11-14T09:12:57.828118Z		category=tool;classifierError=None;classifierMs=363;component=a3-router;kind=route_decision;localHealthy=True;model=openai/gpt-6-astra;rateLimitSimulated=False;requestId=b0a3e561-1fc8-4ebb-a40c-1117d33e1e3f;rule=tool-task;sessionSizeEst=10583;target=cloud;ts=2026-11-14T09:12:57.827Z;via=gemma
+2026-11-14T09:13:14.085088Z		component=send-email;dryRun=False;kind=email_sent;recipientDomain=gmail.com;ts=2026-11-14T09:13:14.083Z
+2026-11-14T09:13:16.513176Z		component=a3-router;error=None;kind=route_result;latencyMs=18685;model=openai/gpt-6-astra;ok=True;requestId=b0a3e561-1fc8-4ebb-a40c-1117d33e1e3f;rule=tool-task;servedModel=openai/gpt-6-astra;target=cloud;ts=2026-11-14T09:13:16.512Z
+
+## Allowlist gap found in the cloud (09:09): `gog gmail messages search "is:unread" --max 10 --json --no-input`
+## was an allowlist miss -> Telegram approval prompt (student screenshot 1.09.15 AM). Fixed in deploy/exec-approvals.json5
+## (messages search + aliases); OpenClaw matcher rerun in the image: messages search/list true, messages modify false,
+## all earlier send/delete/chain cases unchanged (evidence/2026-11-14-m4-exec-allowlist-match.mjs).
+## Applied live (student, instance SSH): `openclaw approvals set --file` -> Allowlist 3, hash ff8ec84e...1672.
+## Retest after /new: unread-email question ran without a prompt (student). Image still has the old file until the next redeploy.

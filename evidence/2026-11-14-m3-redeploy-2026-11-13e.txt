@@ -1,0 +1,21 @@
+Redeploy with router v2 + A6-A9 (image agent:2026-11-13e). Approved by the student ("Go ahead with rebuilding, push and redeploy");
+run by the assistant, Nov 13 2026 4:40-4:47 PM PST (Nov 14 00:40-00:47 UTC).
+
+Before push: npm test 197 passed. docker build --platform linux/amd64 ok. In the image: router/src has classifier.ts decide.ts
+forwarder.ts health.ts index.ts log.ts plugin.ts signals.ts socks5.ts; template config valid; utilityModel ollama/gemma4-a3:e2b;
+a3-router config {"ollamaUrl":"http://127.0.0.1:11435","classifier":true,"classifierTimeoutMs":2000,"healthCheck":true,"simulateRateLimit":false};
+local `openclaw gateway run --tailscale off` (dummy token): "http server listening (4 plugins: a3-router, memory-core, ollama, openai)",
+router health line unknown->down (no Ollama in the local test).
+
+Image: us-west1-docker.pkg.dev/chitti-assistant-a3/a3/agent@sha256:9425ef731aef6a85cd3b494b8195d79ebbcd20733c5c3347825a32a93aeb92b1
+Deploy: gcloud beta run instances deploy a3-agent --region=us-west1 --project=chitti-assistant-a3 --image=<digest>
+describe afterwards: same secret (tailscale-authkey:latest), bucket volume uid=10001,gid=10001, default-url-disabled true, ingress none.
+
+Boot (UTC): 00:42:32 old container shutdown/stopped; 00:42:50 boot; 00:43:00 tailscale-up, forwarder listening via socks5h;
+00:43:33 chatgpt-login-needed (expected after a restart); 00:45:51 serve enabled https://a3-cloud-agent.tail9bf1e8.ts.net/;
+00:45:52 isolation-report (all listeners loopback: 1055, 11435, 18789, ...); 00:46:12 http server listening (4 plugins, 81.5 s).
+Router: 00:46:05 health unknown->down error=timeout; 00:46:16 ollama_call /api/tags 502 socks_timeout (tailnet path still forming,
+relay "sea"); 00:46:46 health down->up; 00:46:51 ollama_call /api/show 200 (~300 ms).
+Laptop at 00:46: Ollama 200, tailscale serve tcp:11434 -> 127.0.0.1:11434, peer a3-cloud-agent active via relay "sea".
+
+Pending: ChatGPT sign-in (deploy/LOGIN.md, student), then the four video prompts on the deployed dashboard + routing log.

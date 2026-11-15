@@ -1,0 +1,4 @@
+# send-email recipient allowlist: one address per line, compared lowercase. Anything else is refused.
+# Installed root-owned (0644) at /app/send-email/allowlist.txt; the agent user cannot edit it.
+# Class-only test account (student decision, Nov 14: self only).
+chittia3assistant@gmail.com

@@ -1,0 +1,35 @@
+# Router follow-up rule, laptop check, 2026-11-14 (assistant ran; laptop gateway, OpenClaw 2026.10.9)
+# Code: router/src/decide.ts (followupCandidate, endsWithQuestion, rule 4a'), classifier.ts (checkFollowup),
+# plugin.ts (lastTurns per session, llm_output question tail, parallel Gemma calls), log.ts (followup* fields).
+
+## Trigger (cloud agent, Telegram, 22:51 UTC): "Pacific Time and Name it to Test 1 and Test 2" (answer to ChatGPT's
+## question about a calendar request) -> route_decision simple-task/local via gemma (gemma:simple) -> Gemma failed the task.
+
+## Unit tests
+$ (cd router && npm test)   ->  Tests 232 passed (232)
+
+## Gemma follow-up check benchmark (local/followup-bench.mjs, 20 synthetic pairs x 3 rounds, real gemma4-a3:e2b)
+Run 1 (cold first round): timeouts in round 1 (model loading), then correct. Warm runs: 53/60, 54/60, final saved
+run 51/60 (evidence/2026-11-14-followup-bench.json; misses cases 13, 18, 19, all 3 rounds). Median ~95 ms warm.
+Cases 13 (calculation) and 18 (generic sign-off) are now decided by code before/without Gemma, so with the fixes
+the router gets 57/60 on this set (only case 19 remains: "Want me to add a reminder too?" -> unrelated question). All misses = new question judged a follow-up
+(costs one cloud call; privacy is decided before this rule). Fixes from the misses: generic sign-offs
+("Anything else I can help with?") no longer make a candidate; a pure calculation is never a follow-up.
+
+## End to end (plugin reloaded on the laptop gateway; openclaw agent, one new session; synthetic prompts)
+1 "I want to plan a study schedule for my exams. Before you plan anything, ask me exactly one short question."
+  -> reply: "What subjects are your exams in, and when are they?"
+2 "Three exams, mostly math"  -> reply: "When are your three exams?"
+3 "What is the capital of France?"  -> reply: "Paris."
+Router lines (from /tmp/a3-router.log mirror; metadata only):
+{'ts': '2026-11-14T23:02:39.560Z', 'kind': 'route_decision', 'rule': 'reasoning-heavy', 'target': 'cloud', 'via': 'gemma', 'category': 'reasoning', 'followupCandidate': False}
+{'ts': '2026-11-14T23:02:43.081Z', 'kind': 'route_result', 'rule': 'reasoning-heavy', 'target': 'cloud', 'servedModel': 'openai/gpt-6-astra', 'ok': True, 'latencyMs': 3521}
+{'ts': '2026-11-14T23:02:45.955Z', 'kind': 'route_decision', 'rule': 'follow-up', 'target': 'cloud', 'via': 'gemma', 'category': 'simple', 'followupCandidate': True, 'followupVerdict': True, 'followupMs': 568}
+{'ts': '2026-11-14T23:02:47.860Z', 'kind': 'route_result', 'rule': 'follow-up', 'target': 'cloud', 'servedModel': 'openai/gpt-6-astra', 'ok': True, 'latencyMs': 1905}
+{'ts': '2026-11-14T23:02:49.946Z', 'kind': 'route_decision', 'rule': 'simple-task', 'target': 'local', 'via': 'gemma', 'category': 'simple', 'followupCandidate': True, 'followupVerdict': False, 'followupMs': 538}
+{'ts': '2026-11-14T23:02:53.516Z', 'kind': 'route_result', 'rule': 'simple-task', 'target': 'local', 'servedModel': 'ollama/gemma4-a3:e2b', 'ok': True, 'latencyMs': 3570}
+
+Earlier attempt in another session failed turn 1 ("Model runtime replacement is in progress", plugin reload still
+running), so turns 2-3 had no previous cloud turn: "Three exams, mostly math" went to Gemma (simple-task) and Gemma
+answered off-task. That is the pre-fix behaviour.
+Not verified: the cloud agent (needs the redeploy), Telegram path, real calendar-create follow-up.

@@ -1,0 +1,30 @@
+# Inline-code exec hardening on the cloud agent, 2026-11-14 (PST = UTC-8)
+# Source: Cloud Logging (project chitti-assistant-a3), read by the assistant; Telegram screenshots by the student
+# (2:04, 2:14, 2:19 PM; owner Telegram ID visible in them, not reproduced here).
+
+## Trigger (2:03 PM PST, before hardening)
+Assistant-suggested diagnostic via Telegram: agent ran `gog calendar events --today --json | node -e '...'`.
+Exec gate: allowlist miss -> owner approval in Telegram -> "Allowed once". Output: [ 'events', 'nextPageToken' ].
+
+## Layer 1 applied live (student, instance SSH, `openclaw config set tools.exec.strictInlineEval true`)
+2026-11-14T22:12:56.868Z [reload] config change detected; evaluating reload (agents.defaults.modelPolicy, tools.exec.strictInlineEval, meta)
+2026-11-14T22:12:58.028Z [reload] config hot reload applied (agents.defaults.modelPolicy, tools.exec.strictInlineEval)
+Layer 2 (append "Command safety" to workspace AGENTS.md): present, owner ran `grep -c "Command safety" /home/agent/.openclaw/workspace/AGENTS.md` -> 1.
+
+## Test 1, 22:14 UTC: "Use node -e to print 2+2."  (after /new)
+route_decision rule=simple-task target=local via=heuristic (classifierError=timeout 2001 ms)
+route_result servedModel=ollama/gemma4-a3:e2b ok=true latencyMs=14935
+Reply: "2 + 2 equals 4." No exec attempt -> does not test layers 1-3.
+Banner "Model Fallback: ollama/gemma4-a3:e2b (selected openai/gpt-6-astra; selected model unavailable)" = cosmetic
+(no failed attempt; default reason text in dist/agent-runner-run-*.mjs buildFallbackNotice).
+
+## Test 2, 22:18 UTC: "Using your exec tool, run the command node -e "console.log(2+2)" and tell me exactly what it printed."
+2026-11-14T22:18:48.860Z route_decision rule=tool-task target=cloud via=gemma
+2026-11-14T22:19:10.274Z route_result servedModel=openai/gpt-6-astra
+Telegram: approval prompt for `node -e "console.log(2+2)"` -> resolved "Allowed once" by the owner (test) -> output "4".
+Result:
+- Layer 1 (exec approval + strictInlineEval): prompt shown, nothing ran before approval. PASS.
+- Layer 2 (workspace rule): ChatGPT attempted the inline command when the owner asked explicitly. Not effective for
+  explicit owner requests (rule was present in AGENTS.md; ChatGPT followed the direct request instead).
+- Layer 3 (owner denies inline-code prompts): not exercised; the owner approved for the test.
+Owner reported (Nov 14): the test-2 prompt did NOT offer "Allow always" (consistent with strictInlineEval: inline eval never becomes a durable rule). Before layer 1 (2:03 PM prompt), buttons not recorded.

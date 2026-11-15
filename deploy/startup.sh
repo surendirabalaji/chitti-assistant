@@ -2,7 +2,7 @@
 # Container entrypoint for the A3 agent (run by tini as the non-root user "agent").
 # Order: secrets -> config -> (restore: M7) -> tailscaled -> tailscale up -> forwarder
 #        -> ChatGPT login check -> gateway (OpenClaw runs Tailscale Serve :443 itself)
-#        -> isolation report -> supervise.
+#        -> isolation report -> scheduled jobs (deploy/jobs/install-jobs.sh) -> supervise.
 # Logs are one JSON object per line on stdout (component a3-ops). Never log secret values.
 set -euo pipefail
 
@@ -18,6 +18,15 @@ ops() { # ops <event> [extra JSON fields without braces]
 die() { ops "fatal" "\"reason\":\"$1\""; exit 1; }
 
 ops "boot" "\"openclaw\":\"$(openclaw --version 2>/dev/null | head -1 | tr -d '"')\",\"node\":\"$(node --version)\""
+# Boot time for the hourly evidence job's uptime field (inherited by the gateway and its command jobs).
+A3_BOOT_TS="$(date +%s)"
+export A3_BOOT_TS
+# Scheduled command jobs (deploy/jobs/*.mjs) append metadata-only lines here; tail them to stdout so
+# they reach Cloud Logging. Not supervised: if tail dies, only those lines stop.
+OPS_LOG=/tmp/a3-ops.log
+touch "$OPS_LOG"
+tail -n 0 -F "$OPS_LOG" 2>/dev/null &
+TAIL_PID=$!
 
 # --- 1. Secrets (injected by Cloud Run from Secret Manager as env vars) -----------------
 [ -n "${TS_AUTHKEY:-}" ] || die "TS_AUTHKEY missing"
@@ -36,6 +45,33 @@ fi
 mkdir -p "$STATE_DIR"
 printf '%s' "$OPENCLAW_GATEWAY_TOKEN" > "$STATE_DIR/.gateway-token"
 
+# gog (Gmail/Calendar). Secrets come from Cloud Run --update-secrets (Secret Manager):
+#   GOG_KEYRING_PASSWORD  unlocks the encrypted token file keyring on the bucket ($GOG_HOME)
+#   GOG_OAUTH_CLIENT_JSON the Desktop OAuth client (stored into $GOG_HOME, then dropped from env)
+# The password is copied to a 0600 file on local disk (never the bucket) for the agent-facing gog
+# wrapper and the SSH sign-in (the SSH shell has no gateway env), then unset like TS_AUTHKEY.
+GOG_PW_FILE="$HOME/.config/a3/gog-keyring-password"
+if [ -n "${GOG_KEYRING_PASSWORD:-}" ]; then
+  mkdir -p "$(dirname "$GOG_PW_FILE")"
+  printf '%s' "$GOG_KEYRING_PASSWORD" > "$GOG_PW_FILE"
+  chmod 600 "$GOG_PW_FILE"
+  unset GOG_KEYRING_PASSWORD
+fi
+# Telegram bot token (Cloud Run secret TELEGRAM_BOT_TOKEN) -> 0600 file named by channels.telegram.tokenFile.
+if [ -n "${TELEGRAM_BOT_TOKEN:-}" ]; then
+  mkdir -p "$HOME/.config/a3"
+  printf '%s' "$TELEGRAM_BOT_TOKEN" > "$HOME/.config/a3/telegram-bot-token"
+  chmod 600 "$HOME/.config/a3/telegram-bot-token"
+  unset TELEGRAM_BOT_TOKEN
+fi
+[ -n "${TELEGRAM_OWNER_ID:-}" ] || die "TELEGRAM_OWNER_ID missing (deploy env var; the config's allowFrom needs it)"
+GOG_CLIENT_FILE=""
+if [ -n "${GOG_OAUTH_CLIENT_JSON:-}" ]; then
+  GOG_CLIENT_FILE="$(mktemp)"
+  printf '%s' "$GOG_OAUTH_CLIENT_JSON" > "$GOG_CLIENT_FILE"
+  unset GOG_OAUTH_CLIENT_JSON
+fi
+
 # --- 2. Config: repo template wins on every boot; keep the `auth` block the login wrote ---
 mkdir -p "$STATE_DIR"
 AUTH_JSON=""
@@ -48,6 +84,12 @@ if [ -n "$AUTH_JSON" ] && [ "$AUTH_JSON" != "null" ]; then
 fi
 openclaw config validate --json >/dev/null || die "config invalid"
 ops "config-applied"
+
+# Exec approvals: replace the whole document on every boot (gog reads allowlisted; send-email and
+# everything else ask the owner; cron gets "deny"). Drops any "allow-always" grants from last boot.
+openclaw approvals set --file /app/exec-approvals.json5 >/dev/null || die "exec approvals not applied"
+ops "exec-approvals-applied" "\"allowlistEntries\":$(openclaw approvals get --json 2>/dev/null \
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const f=j.file??j.document??j;process.stdout.write(String(f.agents?.main?.allowlist?.length??"null"))}catch{process.stdout.write("null")}})' || echo null)"
 
 # --- 3. Restore OpenClaw state from the bucket: TODO M7 (snapshot/restore, guided) -------
 ops "state-restore-skipped" "\"reason\":\"not implemented until M7\""
@@ -77,6 +119,26 @@ tailscale --socket="$TS_SOCKET" up \
   --timeout=60s >/dev/null || die "tailscale up failed"
 rm -f "$TS_KEY_FILE"
 ops "tailscale-up" "\"hostname\":\"$TS_HOSTNAME\",\"ip\":\"$(tailscale --socket="$TS_SOCKET" ip -4 2>/dev/null | head -1)\""
+
+# --- 4b. gog: OAuth client onto the bucket (idempotent); report whether an account is signed in --
+if [ -n "$GOG_CLIENT_FILE" ]; then
+  mkdir -p "$GOG_HOME"
+  # The client secret is stored in the encrypted keyring, so this needs the keyring password too.
+  if [ -f "$GOG_PW_FILE" ] && GOG_KEYRING_PASSWORD="$(cat "$GOG_PW_FILE")" \
+       /usr/local/lib/gogcli/gog --no-input auth credentials set "$GOG_CLIENT_FILE" >/dev/null 2>&1; then
+    ops "gog-client-stored"
+  else
+    ops "gog-client-failed"
+  fi
+  rm -f "$GOG_CLIENT_FILE"
+fi
+if [ -f "$GOG_PW_FILE" ]; then
+  GOG_ACCOUNTS="$(GOG_KEYRING_PASSWORD="$(cat "$GOG_PW_FILE")" /usr/local/lib/gogcli/gog --no-input auth list --json 2>/dev/null \
+    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const a=Array.isArray(j)?j:(j.accounts||j.results||[]);process.stdout.write(String(a.length))}catch{process.stdout.write("unknown")}})' || echo unknown)"
+  ops "gog-status" "\"accounts\":\"$GOG_ACCOUNTS\""   # a count only, never addresses or tokens
+else
+  ops "gog-not-configured" "\"reason\":\"no GOG_KEYRING_PASSWORD secret\""
+fi
 
 # --- 5. Ollama forwarder (student-written, M2 step 8). Absent -> local route unavailable --
 FORWARDER_PID=""
@@ -109,6 +171,7 @@ shutdown() { # shutdown <exit code>: 0 on SIGTERM, 1 if a child died (Cloud Run 
   wait "$GATEWAY_PID" 2>/dev/null || true
   kill -TERM "$TAILSCALED_PID" 2>/dev/null || true
   wait "$TAILSCALED_PID" 2>/dev/null || true
+  kill -TERM "$TAIL_PID" 2>/dev/null || true
   ops "stopped"
   exit "${1:-0}"
 }
@@ -123,6 +186,13 @@ trap 'shutdown 0' TERM INT
   CAPEFF="$(awk '/^CapEff:/ {print $2}' /proc/self/status)"
   PORTS="$(ss -ltnH 2>/dev/null | awk '{print $4}' | sort -u | paste -sd, -)"
   ops "isolation-report" "\"user\":\"$(id -un)\",\"uid\":$(id -u),\"capEff\":\"$CAPEFF\",\"listening\":\"$PORTS\""
+  # --- 8b. Scheduled jobs (M6): declare/update from the image, then missed-job catch-up. The HTTP
+  # listener can come up before the scheduler accepts calls, so retry a few times.
+  for attempt in 1 2 3; do
+    /app/jobs/install-jobs.sh && break
+    ops "jobs-install-retry" "\"attempt\":$attempt"
+    sleep 30
+  done
 ) &
 
 # --- 9. Supervise: if the gateway, tailscaled or the forwarder dies, exit so Cloud Run restarts us

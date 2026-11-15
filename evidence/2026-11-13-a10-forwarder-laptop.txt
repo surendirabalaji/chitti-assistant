@@ -1,0 +1,41 @@
+Lesson A10: Ollama forwarder, laptop checks (run by the assistant, Nov 13 2026 ~11:18-11:20 AM PST)
+Code: router/src/socks5.ts, router/src/forwarder.ts (assistant-written at the student's request)
+Runtime: node v24.22.1 with Node's own type stripping (same command shape as deploy/startup.sh)
+No secrets in this file. The prompt word "zebra" is used to check that message text is never logged.
+
+== npm test (router/) ==
+ Test Files  6 passed (6)
+      Tests  106 passed | 7 todo (113)
+(socks5.test.ts: 14 tests incl. fake SOCKS5 proxy, split replies, REP!=0, timeout, ECONNREFUSED;
+ forwarder.test.ts: config, headers, modelFromBody, formatCall, end-to-end via a fake SOCKS5h
+ proxy + fake streaming Ollama: Host rewrite, Origin removed, streaming, one log line without prompt
+ text, 502 on dead upstream/proxy, health-poll logging off by default, client abort stops upstream)
+
+== Check A: direct to 127.0.0.1:11434, real Gemma (cold), stream:true ==
+{"component":"a3-router","kind":"forwarder","event":"listening","ts":"2026-11-13T19:18:49.566Z","listen":"127.0.0.1:11435","upstream":"127.0.0.1:11434","via":"direct"}
+{"component":"a3-router","kind":"ollama_call","ts":"2026-11-13T19:18:50.576Z","method":"GET","path":"/api/tags","model":"none","status":200,"latencyMs":61,"ttfbMs":59}
+{"component":"a3-router","kind":"ollama_call","ts":"2026-11-13T19:19:11.587Z","method":"POST","path":"/api/chat","model":"gemma4-a3:e2b","status":200,"latencyMs":20997,"ttfbMs":20895}
+{"component":"a3-router","kind":"forwarder","event":"stopping","ts":"2026-11-13T19:19:12.514Z"}
+zebra count in forwarder output: 0
+(curl showed NDJSON lines arriving at different times: streamed, not buffered.
+ ttfbMs ~20.9 s = cold model load; Ollama sends headers with the first token.)
+
+== Check B: via Tailscale Serve name (M1 403 finding) ==
+raw curl to http://surendiras-macbook-air.tail9bf1e8.ts.net:11434/api/tags -> 403
+same upstream through the forwarder (Host rewritten to 127.0.0.1:11434) -> 200
+{"component":"a3-router","kind":"forwarder","event":"listening","ts":"2026-11-13T19:19:48.093Z","listen":"127.0.0.1:11435","upstream":"surendiras-macbook-air.tail9bf1e8.ts.net:11434","via":"direct"}
+{"component":"a3-router","kind":"ollama_call","ts":"2026-11-13T19:19:48.991Z","method":"GET","path":"/api/tags","model":"none","status":200,"latencyMs":73,"ttfbMs":72}
+{"component":"a3-router","kind":"forwarder","event":"stopping","ts":"2026-11-13T19:19:48.992Z"}
+
+== Check C: dead upstream (http://127.0.0.1:1) ==
+two requests -> 502 {"error":"a3-forwarder: ECONNREFUSED"} each; process still running afterwards
+{"component":"a3-router","kind":"forwarder","event":"listening","ts":"2026-11-13T19:19:49.073Z","listen":"127.0.0.1:11435","upstream":"127.0.0.1:1","via":"direct"}
+{"component":"a3-router","kind":"ollama_call","ts":"2026-11-13T19:19:50.031Z","method":"POST","path":"/api/chat","model":"gemma4-a3:e2b","status":502,"latencyMs":4,"error":"ECONNREFUSED"}
+{"component":"a3-router","kind":"ollama_call","ts":"2026-11-13T19:19:50.041Z","method":"POST","path":"/api/chat","model":"gemma4-a3:e2b","status":502,"latencyMs":0,"error":"ECONNREFUSED"}
+{"component":"a3-router","kind":"forwarder","event":"stopping","ts":"2026-11-13T19:19:50.041Z"}
+
+== Config guard ==
+FORWARDER_LISTEN=0.0.0.0:11435 -> refuses to start ("FORWARDER_LISTEN must be a loopback address")
+
+NOT VERIFIED: the real SOCKS5 path through userspace tailscaled from the tag:a3-agent node
+(only possible in the cloud container after a redeploy).

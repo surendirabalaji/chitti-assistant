@@ -1,0 +1,24 @@
+Lesson A6: full rule table (router/src/decide.ts + plugin.ts), laptop checks. Run by the assistant, Nov 13 2026 PST.
+Code assistant-written at the student's request ("Write it, then explain"). OpenClaw 2026.10.9, laptop gateway,
+`openclaw plugins reload a3-router` (generation 5, then 6 after the fix). Turns via `openclaw agent --session-key <fresh> --json`;
+served model read from the JSON result (agentMeta.provider/model). route_decision lines go to the gateway's stdout
+(student's terminal) and were NOT seen by the assistant.
+
+npm test (router/): 167 passed, 1 todo.
+
+Run 1 (generation 5), one session:
+  "What is 12 times 9?"                                   -> ollama/gemma4-a3:e2b  usage.total=11030
+  "This is confidential: say back online in three words." -> ollama/gemma4-a3:e2b  usage.total=11067
+  "What is the weather in Los Angeles today?"             -> openai/gpt-6-astra    usage.total=41430 lastCallContext=15183
+  "Hi again, what is 2 plus 2?"                           -> openai/gpt-6-astra    <-- WRONG (expected local)
+Cause (read in dist/agentsapi-attempt-hooks-*.mjs): llm_output fires once per attempt with usage summed over all model
+calls of the attempt (tool loop ~3 calls) -> session estimate 41430 > 20000 -> long-context.
+Fix: count model_call_ended per runId and divide (unit regression test with these numbers).
+
+Run 2 (generation 6), fresh session, same prompts + one:
+  "What is 12 times 9?"                                   -> ollama/gemma4-a3:e2b  usage.total=11031  (5 s)
+  "This is confidential: say back online in three words." -> ollama/gemma4-a3:e2b  usage.total=11075  (1 s)
+  "What is the weather in Los Angeles today?"             -> openai/gpt-6-astra    usage.total=41055 lastCallContext=15056 (13 s)
+  "Hi again, what is 2 plus 2?"                           -> ollama/gemma4-a3:e2b  usage.total=14072  (5 s)
+  "Name a planet."                                        -> ollama/gemma4-a3:e2b  usage.total=14109  (2 s)  ("planet" is not "plan")
+NOT verified here: held (needs Ollama down + A7 poller), rate-limit (needs A9 config), cron in this version, the cloud.

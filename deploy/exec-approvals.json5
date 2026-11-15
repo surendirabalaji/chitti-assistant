@@ -1,0 +1,45 @@
+// Exec approvals document, seeded by startup.sh on every boot with `openclaw approvals set --file`
+// (replaces the whole document, so "allow-always" grants from a previous boot do not survive).
+// Format: installed OpenClaw 2026.10.9 docs/tools/exec-approvals.md ("Settings and storage", "argPattern").
+//
+// Policy (A3 §2.3):
+//  - Allowlisted = read-only gog commands + creating drafts. These run without a prompt, so cron jobs
+//    (briefing, recap, alerts) work unattended.
+//  - Everything else is an allowlist miss -> ask the owner (Telegram). send-email is deliberately NOT
+//    listed, so every send asks a human; cron has no approver -> askFallback "deny".
+//  - No path-only gog entry: it would match any arguments (docs: path-only fallback).
+// argPattern = JS regex over the arguments after the binary, joined by single spaces.
+// Leading global flags without values (e.g. --json, -p) are allowed before the subcommand.
+{
+  version: 1,
+  defaults: {
+    security: "allowlist",
+    ask: "on-miss",
+    askFallback: "deny",
+    autoAllowSkills: false,
+  },
+  agents: {
+    main: {
+      security: "allowlist",
+      ask: "on-miss",
+      askFallback: "deny",
+      autoAllowSkills: false,
+      allowlist: [
+        // Gmail reads: search threads, search messages (`gmail messages search`, seen in the cloud Nov 14),
+        // get one message, read a thread, list labels. `messages modify` is NOT included.
+        { pattern: "/usr/local/bin/gog", argPattern: "^(--?[A-Za-z][A-Za-z-]* )*(gmail|mail|email) (search|find|query|ls|list|get|info|show|(messages|message|msg|msgs) (search|find|query|ls|list)|(thread|threads|read) get|labels (list|ls))( |$)" },
+        // Drafts: create and list only (drafts send is also blocked inside the gog wrapper).
+        { pattern: "/usr/local/bin/gog", argPattern: "^(--?[A-Za-z][A-Za-z-]* )*(gmail|mail|email) drafts (create|list|ls)( |$)" },
+        // Calendar reads: list calendars, list events, get one event, free/busy.
+        { pattern: "/usr/local/bin/gog", argPattern: "^(--?[A-Za-z][A-Za-z-]* )*(calendar|cal) (calendars|events|list|ls|event|get|info|show|freebusy)( |$)" },
+        // focus-finder (root-owned copy of the ClawHub v1.0.0 script, see Dockerfile): read-only, stdin -> times.
+        // Only its own flags; empty args allowed. The agent-writable workspace copy (`node .../focus-finder.mjs`)
+        // is deliberately NOT allowlisted.
+        { pattern: "/usr/local/bin/focus-finder", argPattern: "^((--date \\d{4}-\\d{2}-\\d{2}|--min \\d{1,3}|--json)( |$))*$" },
+        // a3-activity (M6, root-owned deploy/jobs/activity.mjs): prints today's request/alert counts from the
+        // metadata-only logs for the 6 PM recap. No args, or exactly `--date YYYY-MM-DD`.
+        { pattern: "/usr/local/bin/a3-activity", argPattern: "^(--date \\d{4}-\\d{2}-\\d{2})?$" },
+      ],
+    },
+  },
+}

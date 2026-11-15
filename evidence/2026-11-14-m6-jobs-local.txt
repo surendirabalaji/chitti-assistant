@@ -1,0 +1,114 @@
+M6 scheduled jobs: local container test (image chitti-a3-agent:m6-jobs, linux/amd64 under Rosetta), Nov 14 ~5:10 PM PST
+Run by the assistant. Dummy TELEGRAM_OWNER_ID=123456789 and a dummy bot token file; gateway run --tailscale off; no ChatGPT login, no gog sign-in, no forwarder.
+Unit tests on the laptop: node --test deploy/jobs/*.test.mjs -> 18 pass, 0 fail.
+Laptop run of hourly.mjs against the real Ollama: 'hourly: local up (68 ms), uptime 2.0 h' + ops line {event:hourly, local:up, status:200, latencyMs:68, models:2, uptimeSec:7201}.
+
+===== Run 3 (after the --agent main / stderr fix) =====
+== config validate
+{"valid":true,"path":"/home/agent/.openclaw/openclaw.json","warnings":[]}
+
+== cron config
+{
+  "skipMissedJobs": true,
+  "triggers": {
+    "enabled": false
+  }
+}
+approvals set
+== files
+-rwxr-xr-x 1 root root   63 Nov 15 01:09 /usr/local/bin/a3-activity
+
+/app/jobs:
+total 36
+-rw-r--r-- 1 root root 3896 Nov 15 01:05 activity.mjs
+-rw-r--r-- 1 root root 3764 Nov 14 23:31 alerts.mjs
+-rw-r--r-- 1 root root 1184 Nov 15 01:05 briefing.md
+-rw-r--r-- 1 root root 2491 Nov 15 01:05 catchup.mjs
+-rw-r--r-- 1 root root 2572 Nov 15 01:03 hourly.mjs
+-rwxr-xr-x 1 root root 4353 Nov 15 01:09 install-jobs.sh
+-rw-r--r-- 1 root root 2058 Nov 14 23:31 lib.mjs
+-rw-r--r-- 1 root root 1236 Nov 15 01:05 recap.md
+== gateway listening after ~14 s
+== install-jobs run 1
+{"component":"a3-ops","kind":"ops","event":"job-declared","ts":"2026-11-15T01:09:55Z","job":"a3-alerts","result":"created"}
+{"component":"a3-ops","kind":"ops","event":"job-declared","ts":"2026-11-15T01:09:57Z","job":"a3-hourly-health","result":"created"}
+{"component":"a3-ops","kind":"ops","event":"job-declared","ts":"2026-11-15T01:09:59Z","job":"a3-hourly-cloud","result":"created"}
+{"component":"a3-ops","kind":"ops","event":"job-declared","ts":"2026-11-15T01:10:01Z","job":"a3-briefing","result":"created"}
+{"component":"a3-ops","kind":"ops","event":"job-declared","ts":"2026-11-15T01:10:03Z","job":"a3-recap","result":"created"}
+{"component":"a3-ops","kind":"ops","event":"jobs-installed","ts":"2026-11-15T01:10:05Z","failed":0}
+exit 0
+== install-jobs run 2 (idempotent)
+{"component":"a3-ops","kind":"ops","event":"job-declared","ts":"2026-11-15T01:10:07Z","job":"a3-alerts","result":"unchanged"}
+{"component":"a3-ops","kind":"ops","event":"job-declared","ts":"2026-11-15T01:10:09Z","job":"a3-hourly-health","result":"unchanged"}
+{"component":"a3-ops","kind":"ops","event":"job-declared","ts":"2026-11-15T01:10:11Z","job":"a3-hourly-cloud","result":"unchanged"}
+{"component":"a3-ops","kind":"ops","event":"job-declared","ts":"2026-11-15T01:10:14Z","job":"a3-briefing","result":"unchanged"}
+{"component":"a3-ops","kind":"ops","event":"job-declared","ts":"2026-11-15T01:10:16Z","job":"a3-recap","result":"unchanged"}
+{"component":"a3-ops","kind":"ops","event":"jobs-installed","ts":"2026-11-15T01:10:18Z","failed":0}
+exit 0
+== cron list
+count 6
+{"key":"a3-alerts","enabled":true,"schedule":{"kind":"cron","expr":"*/5 * * * *","tz":"America/Los_Angeles","staggerMs":0},"session":"isolated","payloadKind":"command","argv":["/usr/local/bin/node","/app/jobs/alerts.mjs"],"msgChars":0,"delivery":{"mode":"announce","channel":"telegram","to":"123456789"},"next":"2026-11-15T01:15:00.000Z"}
+{"key":"a3-hourly-health","enabled":true,"schedule":{"kind":"cron","expr":"0 * * * *","tz":"America/Los_Angeles","staggerMs":0},"session":"isolated","payloadKind":"command","argv":["/usr/local/bin/node","/app/jobs/hourly.mjs"],"msgChars":0,"delivery":{"mode":"none","channel":"last"},"next":"2026-11-15T02:00:00.000Z"}
+{"key":"a3-recap","enabled":true,"schedule":{"kind":"cron","expr":"0 18 * * *","tz":"America/Los_Angeles","staggerMs":0},"session":"isolated","payloadKind":"agentTurn","tools":["exec"],"msgChars":1219,"delivery":{"mode":"announce","channel":"telegram","to":"123456789"},"next":"2026-11-15T02:00:00.000Z"}
+{"key":"a3-hourly-cloud","enabled":true,"schedule":{"kind":"cron","expr":"5 * * * *","tz":"America/Los_Angeles","staggerMs":0},"session":"isolated","payloadKind":"agentTurn","tools":[],"lightContext":true,"msgChars":71,"delivery":{"mode":"none","channel":"last"},"next":"2026-11-15T02:05:00.000Z"}
+{"key":"a3-briefing","enabled":true,"schedule":{"kind":"cron","expr":"30 7 * * *","tz":"America/Los_Angeles","staggerMs":0},"session":"isolated","payloadKind":"agentTurn","tools":["exec","web_fetch"],"msgChars":1171,"delivery":{"mode":"announce","channel":"telegram","to":"123456789"},"next":"2026-11-15T15:30:00.000Z"}
+{"key":"heartbeat:main","enabled":false,"schedule":{"kind":"every","everyMs":1800000,"anchorMs":182046},"session":"main","payloadKind":"heartbeat","msgChars":0}
+== run a3-hourly-health
+{"status":"ok","completionStatus":"succeeded","summary":"hourly: local down (unreachable), uptime 1.0 h"}
+== run a3-alerts (gog not signed in here -> expect error + alert-check-failed)
+{"status":"error","completionStatus":"failed","summary":"alerts: calendar read failed","error":"command exited with code 1"}
+== ops log
+{"component":"a3-ops","kind":"ops","event":"alert-check-failed","ts":"2026-11-15T01:10:00.489Z","reason":"gog-error"}
+{"component":"a3-ops","kind":"ops","event":"hourly","ts":"2026-11-15T01:10:22.585Z","local":"down","latencyMs":190,"error":"unreachable","uptimeSec":3653}
+{"component":"a3-ops","kind":"ops","event":"alert-check-failed","ts":"2026-11-15T01:10:27.432Z","reason":"gog-error"}
+== a3-activity
+Activity 2026-11-14 (Pacific):
+requests answered: 0 (local Gemma 0, cloud ChatGPT 0, held 0, unavailable 0); failed 0
+scheduled job turns: 0
+meeting alerts sent: 0
+hourly laptop checks: 0 up, 1 down
+(logs start at 5:09 PM, when the agent last started; earlier activity today is not counted)
+Activity 2026-11-16 (Pacific):
+requests answered: 0 (local Gemma 0, cloud ChatGPT 0, held 0, unavailable 0); failed 0
+usage: a3-activity [--date YYYY-MM-DD]
+bad-args exit 2
+== catchup on the real list (now 17:10 PT)
+(end)
+== router mirror file
+-rw-r--r-- 1 agent agent 151 Nov 15 01:09 /tmp/a3-router.log
+== gateway log: cron/error lines
+{"component":"a3-router","kind":"health","ts":"2026-11-15T01:09:51.798Z","target":"local","from":"unknown","to":"down","failures":1,"error":"network"}
+2026-11-15T01:09:54.890+00:00 [gateway] cron: job added
+2026-11-15T01:09:54.900+00:00 [ws] ⇄ res ✓ cron.add 151ms bytes=880 conn=bba7c7d6…a359 id=2:29e9ef71-7…e872
+2026-11-15T01:09:56.997+00:00 [gateway] cron: job added
+2026-11-15T01:09:59.089+00:00 [gateway] cron: job added
+2026-11-15T01:10:01.188+00:00 [gateway] cron: job added
+2026-11-15T01:10:03.309+00:00 [gateway] cron: job added
+2026-11-15T01:10:07.449+00:00 [gateway] cron: job added
+2026-11-15T01:10:09.469+00:00 [gateway] cron: job added
+2026-11-15T01:10:11.652+00:00 [gateway] cron: job added
+2026-11-15T01:10:13.716+00:00 [gateway] cron: job added
+2026-11-15T01:10:15.775+00:00 [gateway] cron: job added
+2026-11-15T01:10:22.562+00:00 [ws] ⇄ res ✓ cron.runs 399ms bytes=160 conn=4d7ffc81…6efd id=2:e58ce342-9…12d1
+2026-11-15T01:10:24.962+00:00 [ws] ⇄ res ✓ cron.runs 353ms bytes=843 conn=8d954705…9083 id=2:81d63f89-0…7d6f
+2026-11-15T01:10:27.327+00:00 [ws] ⇄ res ✓ cron.runs 339ms bytes=160 conn=d16f913d…c790 id=2:3128959f-4…9f5f
+2026-11-15T01:10:29.717+00:00 [ws] ⇄ res ✓ cron.runs 347ms bytes=1154 conn=6ba0d874…b4f5 id=2:956f0697-7…396d
+
+===== Run 1 (before the fix): install-jobs printed result 'ok' for the 3 agent-turn jobs because the CLI's stderr warning 'No --agent specified' was mixed into the JSON; jobs were created correctly, count 6, no duplicates =====
+
+===== Run 2: OpenClaw's own allowlist matcher (dist exec-approvals-allowlist-*.mjs) on the briefing/recap commands =====
+== allowlist matcher
+true   | gog calendar events --today --json
+true   | gog calendar events --today --json | focus-finder
+true   | gog gmail search "is:unread newer_than:1d" --max 5 --json
+true   | a3-activity
+true   | a3-activity --date 2026-11-16
+true   | gog gmail drafts list --json
+true   | gog calendar events --tomorrow --json --max 3
+false  | a3-activity --date 2026-11-16; rm -rf /tmp/x
+false  | a3-activity --rm
+false  | a3-activity > /tmp/x
+false  | node /app/jobs/activity.mjs
+
+Observed: the */5 alerts slot fired on its own at 01:10:00Z (first alert-check-failed line, before the manual run).
+NOT verified (needs the cloud): Telegram delivery of alert text / briefing / recap, agent-turn jobs (no model login locally), hourly cloud ping route lines, catch-up 'cron run' at boot inside a window, real gog JSON through alerts.mjs.

@@ -1,0 +1,25 @@
+# M4 step 4: parallel plugin in the container image (local Docker, 2026-11-14 ~08:12 UTC, run by the assistant)
+
+deploy/package.json: + "@openclaw/parallel-plugin": "2026.10.9" (published 2026-10-29T14:33Z, no install scripts, peer openclaw >=2026.10.9)
+Lockfile regenerated in node:24.22.1-bookworm-slim@sha256:be8204d4... linux/amd64 with
+  npm install --package-lock-only --before=2026-10-30
+Diff vs previous lockfile: exactly 2 entries changed (root deps + node_modules/@openclaw/parallel-plugin,
+  integrity sha512-3t4bRlu/...l/gmg==, same as `npm view`); 566 other entries unchanged.
+Template: plugins.allow += "parallel"; plugins.load.paths += /app/openclaw/node_modules/@openclaw/parallel-plugin;
+  tools.web.search.provider = "parallel-free".
+
+docker build --platform linux/amd64 -t chitti-a3-agent:m4-local  -> ok (~33 s, cached layers)
+In the container (user agent, template copied as config, dummy TELEGRAM_OWNER_ID):
+  config validate               -> Config valid
+  plugins list --enabled        -> a3-router, parallel, memory-core, ollama, openai, telegram
+  infer web providers           -> selected: parallel-free
+  infer web search "Los Angeles weather today" --limit 2 -> ok true, provider parallel-free, tookMs 1902,
+                                   urls weather.com/..., forecast.weather.gov/...
+  infer web fetch (wttr.in)     -> "web.fetch is disabled or no provider is available."
+                                   SAME error on the laptop with all plugins on, while the laptop agent's
+                                   web_fetch tool worked in a real turn -> infer fetch = provider-backed fetch only,
+                                   not a test of the core web_fetch tool.
+Finding: Readability extraction for web_fetch on HTML comes from bundled plugin "web-readability"
+  (enabledByDefault, contracts.webContentExtractors) which the exclusive plugins.allow excludes.
+  Weather (wttr.in ?format=j2 JSON) does not need it.
+NOT verified: a real agent web_fetch / weather turn inside the container (needs model auth; check after redeploy).

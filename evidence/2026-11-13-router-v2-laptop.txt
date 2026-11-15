@@ -1,0 +1,37 @@
+Router v2 (layered: fixed checks + Gemma label + scoring fallback), laptop. Assistant-run, Nov 13 2026 PST.
+Code assistant-written at the student's request ("A, measure first" + "Write it, then explain").
+
+1. Feasibility benchmark (local/classifier-bench.mjs; raw results evidence/2026-11-13-classifier-bench.json)
+   gemma4-a3:e2b via Ollama /api/chat, think false, temperature 0, num_ctx 32768, JSON schema output.
+   27 synthetic labeled messages x 2 rounds: accuracy 48/54 (89%); simple 14/14, reasoning 12/12, tool 10/12,
+   private 12/16. Gemma MISSED 4 private messages (doctor/blood test, salary), 0 false private.
+   Identical answers in both rounds. Latency warm: median 146 ms, p90 181 ms, max 246 ms; first call with
+   model load 6439 ms.
+   => privacy must stay deterministic; Gemma may only add it.
+
+2. Prompt cache check (OpenClaw agent turns on Gemma, same session):
+   turn 1 input=11005 (10.9 s, cold cache); turns 2-3 cacheRead 11005/11065 (~1 s);
+   classifier call in between; next turn cacheRead=11112 (0.9 s); again; cacheRead=11160 (0.8 s).
+   => classifier calls do not evict OpenClaw's cached prompt. OLLAMA_NUM_PARALLEL unset.
+
+3. Offline routing of the 27 benchmark messages through decide() (route correct = local for simple/private,
+   cloud for reasoning/tool):  scoring fallback only 25/27, v2 with Gemma labels 26/27; private -> cloud: 0 in both.
+   CAVEAT: the scoring rules were written after seeing these messages (optimistic).
+   Misses: "This is not confidential, just tell me a joke" -> private (safe side, accepted);
+   "trade-offs" plural (fallback only; fixed by adding the plural).
+
+4. Real gateway (plugin generation 7), NEW messages not used while writing the rules, `openclaw agent`:
+   ok   local  What is 12 times 9?                                   4.9 s
+   ok   cloud  Explain step by step why the sky is blue.             8.7 s
+   ok   local  How many legs does a spider have?                     4.0 s
+   ok   cloud  I'm torn between learning Rust or Go next. ...       11.8 s
+   XX   local  Anything I need to prepare for before my 3pm?         6.3 s   (wanted cloud: needs calendar)
+   ok   local  I've been having panic attacks before exams, ...      5.3 s   (Gemma label "private"; no fixed pattern)
+   ok   cloud  What happened in the news about electric cars ...    32.0 s
+   ok   local  Convert 5 miles to kilometers.                        6.0 s
+   7/8. Direct classifier calls: "3pm" message -> simple (150 ms); panic-attack message -> private (195 ms).
+   Fix: clock times count as a tool signal, and any tool signal escalates a "simple" label to cloud.
+   Generation 8 rerun: "3pm" message -> openai/gpt-6-astra; spider -> ollama/gemma4-a3:e2b.
+
+route_decision lines (via/category/signals/classifierMs) print on the laptop gateway's stdout: NOT seen by the
+assistant. npm test: 163 passed. Cloud image not rebuilt (still the A5 router).

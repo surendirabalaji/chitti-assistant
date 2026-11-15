@@ -1,0 +1,52 @@
+# M5 focus-finder local checks, 2026-11-14 14:01 PST (run by the assistant on the laptop)
+# Node v24.22.1. Fixture = synthetic events in Google Calendar shape (gog --json shape NOT yet verified).
+
+$ node --test skills/focus-finder/*.test.mjs
+✔ findGaps: empty day is one 09:00-18:00 gap (0.639084ms)
+✔ findGaps: overlapping and nested events merge (0.082625ms)
+✔ findGaps: touching events leave no gap between them (0.059ms)
+✔ findGaps: events outside or across the window are clipped (0.063666ms)
+✔ findGaps: 45 minutes kept, 44 dropped (0.064917ms)
+✔ findGaps: unsorted input, input not mutated (0.076ms)
+✔ findGaps: fully booked day returns nothing (0.041792ms)
+✔ toBusyIntervals: Pacific offset and UTC both become LA wall-clock minutes (7.987584ms)
+✔ toBusyIntervals: daylight time (PDT, UTC-7) handled (0.176417ms)
+✔ toBusyIntervals: all-day, cancelled and free events ignored (0.104ms)
+✔ toBusyIntervals: events on other days dropped, midnight-crossing clipped (0.685625ms)
+✔ toBusyIntervals: dateTime without offset is LA wall-clock, plain ISO strings accepted (0.046958ms)
+✔ toBusyIntervals: accepts array, {events}, {items}; junk gives [] (0.212208ms)
+✔ toBusyIntervals: malformed events skipped without crashing (0.12025ms)
+✔ formatMinutes pads and handles end of day (0.055875ms)
+✔ todayIn uses the LA date, not UTC (0.059834ms)
+✔ CLI: fixture gives the expected gaps (text) (31.31925ms)
+✔ CLI: --json output and --min (30.336084ms)
+✔ CLI: no gaps prints a clear message (31.754083ms)
+✔ CLI: invalid JSON exits 2 (30.799916ms)
+✔ CLI: bad --date exits 2 (20.784208ms)
+✔ CLI: impossible --date exits 2 (21.984625ms)
+✔ CLI: bad --min exits 2 (30.379ms)
+✔ CLI: --min zero exits 2 (29.619583ms)
+✔ CLI: unknown flag exits 2 (20.212292ms)
+✔ CLI: positional arg exits 2 (22.12975ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 315.764791
+
+$ TZ=UTC node --test skills/focus-finder/*.test.mjs   (container runs in UTC)
+ℹ tests 26
+ℹ pass 26
+ℹ fail 0
+
+$ node skills/focus-finder/focus-finder.mjs --date 2026-11-16 < skills/focus-finder/fixtures/sample-events.json
+Focus blocks on 2026-11-16 (America/Los_Angeles, 09:00–18:00, at least 45 min):
+13:00–14:45 (105 min)
+15:00–18:00 (180 min)
+
+$ echo nope | node skills/focus-finder/focus-finder.mjs; echo "exit=$?"
+focus-finder: stdin is not valid JSON
+exit=2

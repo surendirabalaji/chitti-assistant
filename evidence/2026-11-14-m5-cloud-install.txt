@@ -1,0 +1,38 @@
+# M5 focus-finder: fresh install from ClawHub on the cloud agent + run, 2026-11-14 (PST = UTC-8)
+# Sources: Cloud Logging (read by the assistant), student's Telegram screenshot 2:45 PM (owner ID not reproduced).
+
+## Install (student, instance SSH as user agent)
+openclaw skills install @surendirabalaji/focus-finder --version 1.0.0 && openclaw skills info focus-finder
+CLI output (re-run of `openclaw skills info focus-finder`, student, ~2:50 PM):
+  🎯 focus-finder ✓ Ready
+  Source: openclaw-workspace
+  Path: ~/.openclaw/workspace/skills/focus-finder/SKILL.md
+  Visible to model: yes / Available as command: yes
+  Requirements: Binaries: ✓ node
+  (CLI also warned "missing env var TELEGRAM_OWNER_ID": the SSH shell lacks the container env; the gateway has it. CLI-only, harmless.)
+Gateway log: 2026-11-14T22:41:07.064Z [ws] res ✓ skills.status 101ms (the CLI's skills query)
+Installed path (seen in the approval prompt): /home/agent/.openclaw/workspace/skills/focus-finder/focus-finder.mjs
+
+## Run (Telegram, after /new at 2:44 PM): "When am I free today? Use focus-finder."
+2026-11-14T22:44:46.480Z route_decision rule=tool-task target=cloud via=gemma
+Exec approval prompt (Telegram), resolved "Allowed once" by the owner. Command exactly:
+  gog calendar events --today --json | node /home/agent/.openclaw/workspace/skills/focus-finder/focus-finder.mjs
+  (no inline code; gog part allowlisted, node part an allowlist miss -> approval)
+2026-11-14T22:45:07.280Z route_result servedModel=openai/gpt-6-astra ok=true latencyMs=20800
+Reply: "You're free today, November 14, from 9 AM–6 PM Pacific, according to focus-finder.
+        That leaves now until 6 PM—about 3 hours 15 minutes."
+Correctness check vs. the test calendar: <student to confirm: no timed events on Nov 14?>
+
+## Real-gap check (3:11-3:13 PM PST): synthetic events Test 1 15:30-16:00, Test 2 16:30-17:15 on the test calendar
+2026-11-14T23:11:24Z route_decision tool-task/cloud via gemma (category tool) -> 23:11:50 route_result openai/gpt-6-astra ok (25,970 ms)
+2026-11-14T23:11:54Z route_decision tool-task/cloud via gemma -> 23:12:00 route_result ok
+2026-11-14T23:12:11Z route_decision tool-task/cloud via gemma ("When am I free today? Use focus-finder.") -> 23:12:32 route_result ok (20,118 ms)
+Approval prompt (owner allowed once), command chosen by ChatGPT this time:
+  gog calendar events primary --from 2026-11-14T00:00:00-08:00 --to 2026-11-15T00:00:00-08:00 --json --no-input
+    | node /home/agent/.openclaw/workspace/skills/focus-finder/focus-finder.mjs --date 2026-11-14
+Reply: "09:00 to 15:30 (390 minutes)" and "17:15 to 18:00 (45 minutes)"; 16:00-16:30 (30 min) correctly omitted.
+= exactly the expected result. PASS.
+Then "17.15 - 18.00" (answer to the agent's "Which block would you like to focus on?"):
+2026-11-14T23:13:31Z route_decision simple-task/local via gemma (category simple) -> Gemma "You asked to focus on the 17:15 - 18:00 block."
+= the pre-fix follow-up behaviour (cloud image still has the old router; the fix ships with the next redeploy).
+How the two events were created (agent + approval, or by hand): <student to confirm>

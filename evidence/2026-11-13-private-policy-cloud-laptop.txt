@@ -1,0 +1,17 @@
+Private-task policy switch (privateWhenLocalDown), laptop gateway, Nov 13 2026 ~5:50 PM PST. Assistant-run.
+Student decision: cloud fallback (switchable). npm test: 202 passed.
+Method: plugin config ollamaUrl = http://127.0.0.1:1 (dead port) so the router's health check reports "down" while Ollama keeps
+running; plugin generation 23; turns via `openclaw agent`; router lines from /tmp/a3-router.log.
+
+policy cloud:
+  reply (meta openai/gpt-6-astra): "Your locker code is on a sticky note."
+  route_decision privacy-local-unavailable cloud openai/gpt-6-astra signals=privacy:word,privacy:secret-value,policy:cloud-fallback
+  route_result   privacy-local-unavailable cloud openai/gpt-6-astra ok=true
+policy held:
+  reply: "The local model is off and can't be reached right now, so this private request was held and not sent to any model..."
+  route_decision privacy-local-unavailable held none
+  route_result   privacy-local-unavailable held none ok=false
+Note: the laptop gateway log file had no "model-fetch ... gpt-6-astra" lines in either run, so that count is not evidence;
+the cloud answer is shown by route_result (from model_call_ended provider/model) and the reply text.
+Laptop config restored afterwards: plugins.entries.a3-router.config = {"logMirrorFile":"/tmp/a3-router.log"}.
+NOT deployed: the cloud agent (image 2026-11-13e) still uses the held policy until the next redeploy.

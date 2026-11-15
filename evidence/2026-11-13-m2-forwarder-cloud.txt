@@ -1,0 +1,44 @@
+M2 step 8: forwarder in the cloud (image agent:2026-11-13d), read from Cloud Logging by the assistant.
+Image: us-west1-docker.pkg.dev/chitti-assistant-a3/a3/agent@sha256:a5dd8f2de4506e0b1975472cbb67009540c560c4fe102cb177066b8db0f80537
+Deploy: gcloud beta run instances deploy a3-agent --region=us-west1 --project=chitti-assistant-a3 --image=<digest above>
+  (approved by the student; run by the assistant 19:24 UTC). describe afterwards: same secret, bucket volume
+  uid=10001,gid=10001, default-url-disabled true, ingress none.
+
+Boot (UTC):
+19:24:44 a3-ops tailscale-up
+19:24:44 a3-ops forwarder-started
+19:24:45 a3-router forwarder listening via=socks5h (127.0.0.1:11435 -> surendiras-macbook-air.tail9bf1e8.ts.net:11434)
+19:25:13 a3-ops chatgpt-login-needed   (expected: restart loses the login, see deploy/LOGIN.md)
+19:27:28 [tailscale] serve enabled: https://a3-cloud-agent.tail9bf1e8.ts.net/
+19:27:30 isolation-report listening: 0.0.0.0%lo:47428,127.0.0.1:1055,127.0.0.1:11435,127.0.0.1:18789,127.0.0.1:44739,[::1]:18789
+19:27:47 [gateway] http server listening (4 plugins: a3-router, memory-core, ollama, openai; 77.6s)
+
+First call from the cloud container to the laptop through tailscaled SOCKS5 (made by OpenClaw's ollama provider):
+{"component":"a3-router","kind":"ollama_call","ts":"2026-11-13T19:28:30.901Z","method":"POST","path":"/api/show",
+ "model":"gemma4-a3:e2b","status":200,"latencyMs":787,"ttfbMs":586}
+=> SOCKS5h path cloud -> tag:a3-agent -> tailnet -> laptop serve tcp:11434 -> Ollama works, Host rewrite accepted.
+
+19:32 PST: dashboard refused to send "what is 12 times 9" before the turn started:
+"No provider credential is configured for this model. Set it up in Model Setup." (session model GPT-6 Astra,
+ChatGPT login not redone yet). No route_decision line, so the router hook never ran.
+
+After the student redid deploy/LOGIN.md: new dashboard chat, "What is 12 times 9?" (session model left on GPT-6 Astra):
+19:36:53 ollama_call POST /api/show gemma4-a3:e2b 200 latencyMs=337
+19:39:04 route_decision rule=simple-task target=local model=ollama/gemma4-a3:e2b
+19:39:04 [agent/embedded] [hooks] provider overridden to ollama / model overridden to gemma4-a3:e2b
+19:39:17 [gateway] slow chat send 64597ms stage=startup ack=19002ms preparation=37700ms replyInitialization=26684ms
+19:39:44 ollama_call POST /api/chat gemma4-a3:e2b 200 latencyMs=15618 ttfbMs=15301
+19:39:54 [model-fetch] provider=openai model=gpt-6-astra status=200 elapsedMs=2316  (after the reply; background call,
+         no route_decision -> not routed by the plugin; probably conversation title generation, not verified)
+Student (laptop): `ollama ps` -> gemma4-a3:e2b 7.5 GB 100% GPU CONTEXT 32768 mlx; dashboard reply "12 times 9 is 108";
+student reports it took too long.
+Timing: chat send ~19:38:13 -> Gemma call ~19:39:28-19:39:44 (15.6 s on the laptop) -> reply. About 90 s end to end;
+about 75 s of it is OpenClaw on the 1-vCPU instance (first turn after boot), not Gemma or the tunnel.
+=> M2 local reply through the deployed dashboard: PASS.
+
+Warm second turn, same chat, "7 times 5" (student; dashboard showed "7 times 5 is 35. Done in 6 seconds"):
+19:42:55 route_decision rule=simple-task target=local
+19:42:55 [hooks] provider overridden to ollama
+19:42:56 [gateway] slow chat send 1745ms stage=startup ack=166ms preparation=1546ms replyInitialization=187ms
+19:43:03 ollama_call POST /api/chat 200 latencyMs=4983 ttfbMs=4901
+=> the ~90 s first turn was one-time warm-up after boot; a warm local turn is ~6-8 s on 1 vCPU.

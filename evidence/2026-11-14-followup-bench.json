@@ -1,0 +1,38 @@
+{
+  "model": "gemma4-a3:e2b",
+  "rounds": 3,
+  "cases": 20,
+  "accuracy": "51/60",
+  "errors": 0,
+  "medianMsWarm": 98,
+  "maxMs": 140,
+  "misses": [
+    {
+      "case": 13,
+      "expected": false,
+      "answers": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "case": 18,
+      "expected": false,
+      "answers": [
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "case": 19,
+      "expected": false,
+      "answers": [
+        true,
+        true,
+        true
+      ]
+    }
+  ]
+}

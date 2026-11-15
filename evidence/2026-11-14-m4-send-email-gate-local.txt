@@ -1,0 +1,36 @@
+# M4 step 5: send-email wrapper + exec approvals, local checks 2026-11-14 ~08:30 UTC (run by the assistant)
+
+$ node --test skills/send-email/*.test.mjs
+ℹ tests 23
+ℹ pass 23
+ℹ fail 0
+
+## OpenClaw's own matcher (evaluateShellAllowlistWithAuthorization from dist/exec-approvals-allowlist-*.mjs) on deploy/exec-approvals.json5, inside image chitti-a3-agent:m4-local
+## true = allowlisted (runs without prompt); false = miss -> asks the owner (cron: denied, askFallback deny)
+true       | gog gmail search 'is:unread newer_than:1d' --max 10 --json 
+true       | gog --json gmail search is:unread 
+true       | gog gmail get 18c2a --json 
+true       | gog gmail drafts create --to a@b.com --subject Hi --body-file drafts/x.txt 
+true       | gog calendar events primary --from today --to tomorrow --json 
+false      | gog gmail send --to a@b.com --subject Hi --body x 
+false      | gog gmail drafts send r123 
+false      | gog gmail reply 18c2a --body hi 
+false      | gog gmail trash 18c2a 
+false      | gog calendar delete primary ev1 
+false      | gog calendar create primary --summary x 
+false      | gog gmail search x; send-email --to a@b.com --subject s --body-file f 
+false      | gog gmail search x && curl https://evil.example 
+false     (analysis rejected) | gog gmail search x > /tmp/out 
+false     (analysis rejected) | gog gmail search $(cat /etc/passwd) 
+false      | send-email --to chittia3assistant@gmail.com --subject Hi --body-file drafts/x.txt 
+false      | /usr/local/lib/gogcli/gog gmail send --to a@b.com --subject x --body y 
+
+## In the container as user agent (output above in session):
+- /app/send-email and /app/skills/send-email root:root 0755, files 0644; agent append to allowlist.txt -> Permission denied
+- send-email --to someone@example.com ... -> exit 3, {kind:email_refused, reason:recipient-not-allowed, recipientDomain:example.com}
+- send-email ... --cc x@example.com -> exit 2, reason bad-arguments (Unknown option '--cc')
+- send-email --to chittia3assistant@gmail.com ... --dry-run -> real gog: 'Dry run: would gmail.send' to [chittia3assistant@gmail.com], exit 0, kind email_dry_run
+- openclaw approvals set --file /app/exec-approvals.json5 -> 3 entries stored; approvals get: effective mode ask, security allowlist, askFallback deny
+- config validate ok; plugins enabled: a3-router parallel memory-core ollama openai telegram web-readability
+
+NOT verified (needs the cloud): Telegram approval prompt + buttons, cron denial in practice, skill send-email listed as eligible (skills list needs the gateway token), real send.

@@ -1,0 +1,28 @@
+Dry run of the video routing requests on the DEPLOYED agent (image agent:2026-11-13e), dashboard over Tailscale.
+Student sent the messages and quit/reopened Ollama; the assistant read Cloud Logging. Nov 13 2026 PST (Nov 14 UTC).
+Command (Local Gemma guide Part 3 shape):
+  gcloud logging read 'jsonPayload.component="a3-router"' --project=chitti-assistant-a3 --freshness=30m --order=desc
+
+UTC       kind            requestId  rule                       target  model                 ok     latencyMs  via
+01:12:12  route_decision  e644f93d   simple-task                local   ollama/gemma4-a3:e2b                    heuristic (classifier 2 s timeout, Gemma cold)
+01:12:29  route_result    e644f93d   simple-task                local   ollama/gemma4-a3:e2b  true   16454
+01:18:36  route_decision  e46b3ca4   reasoning-heavy            cloud   openai/gpt-6-astra                      heuristic (classifier 2 s timeout)
+01:18:46  route_result    e46b3ca4   reasoning-heavy            cloud   openai/gpt-6-astra    true   10427
+01:19:10  health          up->down (first failed /api/tags at 01:19:00)
+01:20:39  route_decision  ad75301c   privacy-local-unavailable  held    none                                    fixed
+01:20:39  route_result    ad75301c   privacy-local-unavailable  held    none                  false  0
+          dashboard (student screenshot 5.40.14 PM): "The local model is off and can't be reached right now, so this private
+          request was held and not sent to any model. Please try again when it's back." (UI label "Replying to Original message unavailable")
+01:20:39, 01:21:13, 01:22:15, 01:24:15  ollama_call /api/chat 502: local utility/title calls failing while Ollama is off (no cloud call)
+01:35:50  health          down->up
+01:36:55  route_decision  630e9190   privacy-sensitive          local   ollama/gemma4-a3:e2b  (student re-sent the locker-code message)
+01:37:18  route_result    630e9190   privacy-sensitive          local   ollama/gemma4-a3:e2b  true   (dashboard: "Done in 21 seconds",
+          Gemma reply "I do not have access to personal information like locker codes...")
+No model-fetch / provider overridden lines between 01:20:30 and 01:36:55 => the held request reached no model.
+The exact request 4 text ('say "back online" in three words') was not sent in this run.
+
+Observations: (1) every request has route_decision + route_result with the same requestId; the held decision line is written
+by the claim (dashboard path also runs before_agent_reply first, consistent with the laptop finding). (2) The first message
+after Gemma unloaded hits the 2 s classifier limit -> via heuristic; send a warm-up message before recording.
+(3) Privacy gap found: the chat history containing a private message is sent with every later turn; a later cloud turn in
+the same chat would send it to ChatGPT (not triggered in this run).

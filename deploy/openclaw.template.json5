@@ -25,6 +25,27 @@
   // Browser plugin is not in plugins.allow; also switch it and cookie import off explicitly.
   browser: { enabled: false, allowSystemProfileImport: false },
 
+  // Telegram (M4): owner-only DMs, groups blocked. The bot token comes from Secret Manager via
+  // startup.sh (0600 file, env var unset); the owner's numeric ID from the deploy-time env var
+  // TELEGRAM_OWNER_ID (not a secret, kept out of the repo). Only one poller per bot token:
+  // Telegram is disabled on the laptop (Nov 13).
+  channels: {
+    telegram: {
+      enabled: true,
+      tokenFile: "/home/agent/.config/a3/telegram-bot-token",
+      dmPolicy: "allowlist",
+      allowFrom: ["${TELEGRAM_OWNER_ID}"],
+      groupPolicy: "allowlist",          // no groupAllowFrom -> no group can use the bot
+      // Exec approvals (send-email, any allowlist miss) as a DM to the owner, with inline buttons.
+      execApprovals: { enabled: true, target: "dm" },
+      capabilities: { inlineButtons: "dm" },
+    },
+  },
+  // send-email skill (tells the agent the only way to send mail); script installed at /usr/local/bin/send-email.
+  skills: { load: { extraDirs: ["/app/skills"] } },
+  // Owner for owner-only commands and exec approvals (approval buttons in Telegram).
+  commands: { ownerAllowFrom: ["telegram:${TELEGRAM_OWNER_ID}"] },
+
   discovery: { mdns: { mode: "off" } },   // no Bonjour broadcasting in the cloud
   update: { checkOnStart: false },        // pinned version: no update checks or auto-apply
 
@@ -39,7 +60,7 @@
       models: {
         "openai/gpt-6-astra": { agentRuntime: { id: "openclaw" } },
       },
-      utilityModel: "",                   // disable the separate utility route (gpt-5.6-luna got 403)
+      utilityModel: "ollama/gemma4-a3:e2b", // titles/narration stay local (they carry message text and bypass the router); fail when the laptop is off
       heartbeat: { every: "0m" },         // no recurring heartbeat turns; proactive jobs are explicit cron (M6)
     },
   },
@@ -66,12 +87,17 @@
 
   plugins: {
     // Exclusive allowlist: everything else (browser, github, cua-computer, bonjour, ...) stays off.
-    allow: ["a3-router", "openai", "ollama", "memory-core"],
-    load: { paths: ["/app/router"] },
+    // web-readability: bundled, local-only main-text extraction for web_fetch on HTML pages.
+    allow: ["a3-router", "openai", "ollama", "memory-core", "telegram", "parallel", "web-readability"],
+    // parallel = @openclaw/parallel-plugin, pinned in deploy/package.json (key-free web search).
+    load: { paths: ["/app/router", "/app/openclaw/node_modules/@openclaw/parallel-plugin"] },
     entries: {
       "a3-router": {
         enabled: true,
         hooks: { allowConversationAccess: true },   // required for before_model_resolve
+        // Router v2: Gemma labels each message through the forwarder (loopback only).
+        // logMirrorFile: metadata-only copy of the router lines on local disk, read by a3-activity (6 PM recap).
+        config: { ollamaUrl: "http://127.0.0.1:11435", classifier: true, classifierTimeoutMs: 2000, healthCheck: true, simulateRateLimit: false, privateWhenLocalDown: "cloud", logMirrorFile: "/tmp/a3-router.log" },
       },
       "memory-core": {
         config: { dreaming: { enabled: false } },   // no background MEMORY.md rewrites
@@ -79,7 +105,21 @@
     },
   },
 
+  // Scheduled jobs (M6) are declared by deploy/jobs/install-jobs.sh at boot.
+  cron: {
+    // No replay of slots missed while the container was down (no 6 PM recap at 2 AM); install-jobs.sh
+    // catches up the briefing (before noon) and recap (before 22:00) itself (docs cron-jobs/managing-jobs.md).
+    skipMissedJobs: true,
+    // Condition-trigger scripts, script payloads and stream jobs run unattended with the agent's full
+    // tool policy including exec (docs cron-jobs/schedules.md warning). Not used here, so off.
+    triggers: { enabled: false },
+  },
+
   tools: {
-    exec: { mode: "ask" },         // allowlist + human approval on every miss (allowlist starts empty)
+    // allowlist + human approval on every miss. strictInlineEval: inline code (node -e, python -c, sed,
+    // awk, find -exec, xargs, ...) always needs approval, even for an allowlisted binary, and never
+    // becomes an allow-always rule (docs tools/exec.md "Inline eval"). Owner decision Nov 14.
+    exec: { mode: "ask", strictInlineEval: true },
+    web: { search: { provider: "parallel-free" } },   // must be explicit; weather uses web_fetch (core)
   },
 }
