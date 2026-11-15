@@ -46,6 +46,14 @@
   // Owner for owner-only commands and exec approvals (approval buttons in Telegram).
   commands: { ownerAllowFrom: ["telegram:${TELEGRAM_OWNER_ID}"] },
 
+  // Memory across chats: on /new, /reset or daily rollover the bundled session-memory hook saves the
+  // ended chat's recent messages to workspace/memory/YYYY-MM-DD-HHMM.md; today's and yesterday's notes
+  // load automatically into the next chat (docs concepts/memory.md). Onboarding enabled this on the
+  // laptop; the container template lacked it, so cloud boots logged "internal-hooks=skipped
+  // (not-configured)" and /new saved nothing (found Nov 14 in the M7 cloud test). The notes contain
+  // message text: they live in the workspace and in bucket snapshots (privacy note in README/audit).
+  hooks: { internal: { entries: { "session-memory": { enabled: true } } } },
+
   discovery: { mdns: { mode: "off" } },   // no Bonjour broadcasting in the cloud
   update: { checkOnStart: false },        // pinned version: no update checks or auto-apply
 
@@ -61,6 +69,9 @@
         "openai/gpt-6-astra": { agentRuntime: { id: "openclaw" } },
       },
       utilityModel: "ollama/gemma4-a3:e2b", // titles/narration stay local (they carry message text and bypass the router); fail when the laptop is off
+      // Owner's time zone: the agent's notion of "today", and the dates of session-memory files
+      // (container clock is UTC). Docs automation/hooks/bundled-hooks.md "session-memory details".
+      userTimezone: "America/Los_Angeles",
       heartbeat: { every: "0m" },         // no recurring heartbeat turns; proactive jobs are explicit cron (M6)
     },
   },

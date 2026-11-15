@@ -37,3 +37,23 @@ state 43M of which cache 35M (skipped as volatile); archive ~720 KB. -> waiting 
 Fixes written locally after this (not deployed yet): catchup skips state.runningAtMs; install-jobs cron CLI --timeout 90000;
 startup retries 5 x 45 s; snapshot timeout 170 s, job timeout 200 s. 25 job tests pass.
 Not verified yet: run-now briefing, seeded-meeting alert, hourly-cloud lines (05 past), restart test with a fresh in-cloud snapshot.
+
+Seeded-meeting alert + snapshots after the student's Telegram "remember" message (Nov 14 ~6:20-6:35 PM PST)
+02:23:02 snapshot interval snap-20261115T022301861Z.tar.gz   (after the remember message)
+02:25:01 alert-check due=0
+02:29:06 snapshot interval
+02:30:01 alert-sent count=1 minutes=[30]      <- unsolicited alert for the seeded meeting (~03:00 UTC = 7:00 PM PT); Telegram content: student to confirm
+02:35:01 alert-check due=0                      <- dedupe: meeting still inside the 15-30 min window, no second alert
+02:35:06 snapshot interval
+Image agent:2026-11-14c pushed (index sha256:7ef27b08f93bc1ffbb35c468f51ece88f7b5dd690b19e2ef39d7ec7ea8a09f08, commit 190894d) with the fixes above; not deployed yet.
+
+M7 restart + memory test (Nov 14 ~6:20 PM - 8:30 PM PST; image 2026-11-14c = amd64 sha256:b5b02e4457826890b6a3b34dcbb1df08403df61c91df298eb4b9096e42c440f0)
+02:21:23 ChatGPT turn (long-context, cloud) with one tool call -> student's "remember ... coffee" message
+Restart 1 (deploy 2026-11-14c): 02:41:22 shutdown -> final snapshot -> 02:41:59 state-restored ageSec=30 -> 02:45:34 chatgpt-login-present; persona userSeeded=false; jobs ok after 1 retry; no duplicate meeting alert across the restart
+03:59:25 recall question after /new -> simple-task local (classifier timeout, laptop had just come back) -> Gemma, no tool call; student: did not remember
+Restart 2 (student redeployed 04:07:29): shutdown snapshot 04:07:35 -> state-restored ageSec=20 -> chatgpt-login-present 04:11:24 -> gateway ready 04:15:01 -> /new at 04:16:20 answered 04:19:16 (CPU-starved boot on 1 vCPU)
+04:29:17 recall question -> simple-task local (classifier timeout) -> Gemma, no tool call, 16 s. Reply (student): "Calculation complete. The decimal point tried to escape; I caught it. For a robot, coffee is a highly efficient fuel source."
+   -> mentions coffee, but copies SOUL §1's example line verbatim and jokes instead of answering. "Model Fallback ... selected model unavailable" banner shown: cosmetic (router chose Gemma; no openai/auth/fallback errors in the logs since the restart).
+Student's read-only check over SSH (04:3x): workspace/USER.md:48 "- Remember that I like coffee." (USER.md mtime 02:21 = the ChatGPT tool call; survived both restarts; AGENTS/SOUL/IDENTITY mtime 04:10 = reset from the repo at boot). No workspace/memory/ folder, no MEMORY.md.
+Root cause of weak cross-chat memory: every cloud boot logs "startup outcomes: internal-hooks=skipped (not-configured)". The laptop config has hooks.internal.entries.session-memory.enabled=true (set by onboarding); the container template never had it, so /new saved no memory/YYYY-MM-DD-HHMM.md note, and the next chat only had what the model happened to write to USER.md.
+Fix (local, not deployed): template hooks.internal.entries.session-memory.enabled=true + agents.defaults.userTimezone=America/Los_Angeles; local container: config valid, "internal-hooks=loaded", "[hooks] loaded 1 internal hook handler". SOUL.md: one line under the §1 examples ("tone only, never repeat them word for word").

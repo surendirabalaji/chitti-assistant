@@ -78,7 +78,7 @@ Code done + local container restart test Nov 14 (`evidence/2026-11-14-m7-snapsho
 - [ ] Snapshot (5 min + within 1 min of a ChatGPT login change), OpenClaw `backup create --verify` (consistent SQLite), partial-name upload then rename, keep 6, final snapshot on SIGTERM (`deploy/jobs/snapshot.mjs`, job `a3-state-snapshot`)
 - [ ] Restore before gateway start with fallback to older snapshots; `state-restored` log; block snapshots if all fail (`deploy/jobs/restore.mjs`)
 - [x] Persona files (SOUL.md, USER.md, IDENTITY.md) synthetic (Nov 14, `workspace/`; student to review)
-- [ ] Restart test: same Tailscale name, preference recalled in fresh chat, ChatGPT still logged in
+- [x] Restart test: same Tailscale name, preference recalled in fresh chat, ChatGPT still logged in (Nov 14 cloud, two restarts: login kept, USER.md "coffee" line kept and recalled by Gemma, weakly; `evidence/2026-11-15-m6-m7-cloud-deploy.txt`). Found: session-memory hook was off in the container → fixed in the template, needs redeploy
 
 ## M8 Grader access and rehearsal (2–3 h)
 - [ ] `gateway.auth.allowTailscale true`, `gateway.controlUi.allowedOrigins` exact URL, socket link, Serve :443
