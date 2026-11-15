@@ -74,9 +74,10 @@ Code done + local container test Nov 14 (`evidence/2026-11-14-m6-jobs-local.txt`
 - [ ] Cron draft-only test (from M4): one-off job asking to email → send-email denied (askFallback deny), no send
 
 ## M7 Memory and restart (3–4 h)
-- [ ] Snapshot agent (5 min), auth-file-on-change copy, SQLite backup API, atomic upload, final snapshot on SIGTERM
-- [ ] Restore before gateway start; `state-restored` log
-- [ ] Persona files (SOUL.md, USER.md, IDENTITY.md) synthetic
+Code done + local container restart test Nov 14 (`evidence/2026-11-14-m7-snapshot-restore-local.txt`); tick after the cloud test.
+- [ ] Snapshot (5 min + within 1 min of a ChatGPT login change), OpenClaw `backup create --verify` (consistent SQLite), partial-name upload then rename, keep 6, final snapshot on SIGTERM (`deploy/jobs/snapshot.mjs`, job `a3-state-snapshot`)
+- [ ] Restore before gateway start with fallback to older snapshots; `state-restored` log; block snapshots if all fail (`deploy/jobs/restore.mjs`)
+- [x] Persona files (SOUL.md, USER.md, IDENTITY.md) synthetic (Nov 14, `workspace/`; student to review)
 - [ ] Restart test: same Tailscale name, preference recalled in fresh chat, ChatGPT still logged in
 
 ## M8 Grader access and rehearsal (2–3 h)

@@ -1,0 +1,79 @@
+M7 snapshot/restore: local container restart test (image chitti-a3-agent:m7-local, linux/amd64 under Rosetta), Nov 14 ~5:25 PM PST
+Run by the assistant. A Docker volume stands in for the bucket at /mnt/state. Dummy TELEGRAM_OWNER_ID=123456789, dummy bot token, no ChatGPT login, gateway run --tailscale off.
+The test script repeats startup.sh's restore -> config (keep auth) -> approvals -> persona steps (startup.sh itself needs Tailscale + secrets).
+Unit tests: node --test deploy/jobs/*.test.mjs -> 24 pass.
+
+Laptop facts (read-only, names/counts only, no values): OpenClaw 2026.10.9 'backup create --verify' 2.3 s for a 4.3 MB archive; 'backup restore' 0.97 s, sqliteInventoryVerified true; agents/main/agent auth_profile_store has 0 rows on the laptop although its ChatGPT login works -> the shared login is in state/openclaw.sqlite config_machine_state keys authProfiles.store / auth.sharedStore (docs reference/database-schemas/state-schema-history.md 'State schema 13'). The laptop archive was deleted right after the test.
+
+===== Run 2 (final): A = fresh boot + snapshots; B = new container, same volume, corrupt newest snapshot planted
+===== CONTAINER A (fresh boot, empty bucket volume)
+after 'openclaw --version': state db exists? no; state dir: 
+{"valid":true,"path":"/home/agent/.openclaw/openclaw.json","warnings":[]}
+
+USER.md seeded
+workspace before gateway: AGENTS.md IDENTITY.md SOUL.md USER.md 
+gateway listening after ~14 s
+workspace after gateway: AGENTS.md IDENTITY.md SOUL.md USER.md 
+{"component":"a3-ops","kind":"ops","event":"job-declared","ts":"2026-11-15T01:22:54Z","job":"a3-state-snapshot","result":"created"}
+{"component":"a3-ops","kind":"ops","event":"jobs-installed","ts":"2026-11-15T01:22:56Z","failed":0}
+marker job added
+== cron run a3-state-snapshot (first -> due)
+{}
+== direct run right after (not due -> quiet, exit 0)
+snapshot snap-20261115T012307087Z.tar.gz (first, 205137 bytes)
+exit 0 output-above-if-any
+== shutdown-style snapshot (force, no verify, timeout 8)
+snapshot snap-20261115T012311972Z.tar.gz (shutdown, 205275 bytes)
+exit 0 in 4883 ms
+== bucket
+total 608
+-rw------- 1 agent agent 203575 Nov 15 01:23 snap-20261115T012305502Z.tar.gz
+-rw------- 1 agent agent 205137 Nov 15 01:23 snap-20261115T012307087Z.tar.gz
+-rw------- 1 agent agent 205275 Nov 15 01:23 snap-20261115T012311972Z.tar.gz
+== ops log
+{"component":"a3-ops","kind":"ops","event":"state-restore-none","ts":"2026-11-15T01:22:21.999Z","reason":"no snapshots in bucket (first boot)"}
+{"component":"a3-ops","kind":"ops","event":"snapshot","ts":"2026-11-15T01:23:05.532Z","reason":"first","name":"snap-20261115T012305502Z.tar.gz","bytes":203575,"verified":true,"pruned":0,"ms":5149}
+{"component":"a3-ops","kind":"ops","event":"snapshot","ts":"2026-11-15T01:23:07.115Z","reason":"first","name":"snap-20261115T012307087Z.tar.gz","bytes":205137,"verified":true,"pruned":0,"ms":4846}
+{"component":"a3-ops","kind":"ops","event":"snapshot","ts":"2026-11-15T01:23:12.000Z","reason":"shutdown","name":"snap-20261115T012311972Z.tar.gz","bytes":205275,"verified":false,"pruned":0,"ms":4532}
+===== CONTAINER B (new container, same bucket volume; corrupt newest snapshot planted)
+{"valid":true,"path":"/home/agent/.openclaw/openclaw.json","warnings":[]}
+
+USER.md kept
+{"component":"a3-ops","kind":"ops","event":"state-restore-attempt-failed","ts":"2026-11-15T01:23:14.591Z","snapshot":"snap-20991231T235959999Z.tar.gz","error":"Command failed: openclaw backup restore tmpa3-restorearchive.tar.gz --target tmpa3-restoreout --jsonopenclaw Th"}
+{"component":"a3-ops","kind":"ops","event":"state-restored","ts":"2026-11-15T01:23:16.425Z","snapshot":"snap-20261115T012311972Z.tar.gz","createdAt":"2026-11-15T01:23:09.209Z","ageSec":4,"entries":7,"sqliteVerified":true}
+== memory fact:
+- Test fact (synthetic): Jordan's locker is number 42.
+== learned preference kept:
+1
+== edited rule reset (expect 0):
+0
+gateway listening after ~14 s
+== cron jobs after restore:
+a3-state-snapshot a3-alerts a3-hourly-health a3-recap a3-hourly-cloud a3-briefing m7-marker heartbeat:main
+
+===== Run 1, container C: only corrupt snapshots -> marker, snapshots blocked, bucket unchanged
+===== CONTAINER C (only corrupt snapshots in the bucket)
+marker: /tmp/a3-restore-failed
+snapshot blocked: restore failed at boot (see deploy/LOGIN.md)
+snapshot exit 1 (expect 1, blocked)
+bucket unchanged:
+snap-20261115T010000000Z.tar.gz
+snap-20261115T010500000Z.tar.gz
+{"component":"a3-ops","kind":"ops","event":"state-restore-attempt-failed","ts":"2026-11-15T01:21:16.098Z","snapshot":"snap-20261115T010500000Z.tar.gz","error":"Command failed: openclaw backup restore tmpa3-restorearchive.tar.gz --target tmpa3-restoreout --jsonopenclaw Th"}
+{"component":"a3-ops","kind":"ops","event":"state-restore-attempt-failed","ts":"2026-11-15T01:21:17.909Z","snapshot":"snap-20261115T010000000Z.tar.gz","error":"Command failed: openclaw backup restore tmpa3-restorearchive.tar.gz --target tmpa3-restoreout --jsonopenclaw Th"}
+{"component":"a3-ops","kind":"ops","event":"state-restore-failed","ts":"2026-11-15T01:21:17.910Z","tried":2,"snapshotsBlocked":true}
+{"component":"a3-ops","kind":"ops","event":"snapshot-blocked","ts":"2026-11-15T01:21:18.188Z","reason":"restore-failed-at-boot"}
+
+===== Run 1, container B (before the fix): restored config without an auth block -> 'openclaw config get auth --json' exits 1 with an error object on stdout; startup.sh's '|| true' kept it and 'config set auth' failed ('Unrecognized keys: ok, error'). Under set -e this would abort the boot. Fixed in startup.sh: AUTH_JSON="$(...)" || AUTH_JSON=""
+===== CONTAINER B (new container, same bucket volume; corrupt newest snapshot planted)
+Config change declined. No settings were saved.
+Config validation failed: auth: Unrecognized keys: "ok", "error"
+Correct the setting above and retry. Run openclaw config schema to inspect supported settings and values.
+{"valid":true,"path":"/home/agent/.openclaw/openclaw.json","warnings":[]}
+
+USER.md kept
+
+===== Lock test (after adding the lock): two parallel non-forced runs, no gateway running -> 1 snapshot, lock removed
+snapshot snap-20261115T012422299Z.tar.gz (first, 34075 bytes) / snapshots after 2 parallel runs: 1 / lock dir absent / 1 snapshot ops line
+
+NOT verified (needs the cloud): gcsfuse rename/copy behaviour, snapshot timing on 1 vCPU, the ChatGPT login surviving a real restart, the 10 s SIGTERM window, auth-change trigger with a real token refresh.

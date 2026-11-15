@@ -25,8 +25,21 @@ runuser -u agent -- env HOME=/home/agent \
    or logs.**
 3. Check as the same user: `openclaw models auth list` shows an openai profile.
 
-Persistence: the login lives in SQLite on local disk (`agents/main/agent/openclaw-agent.sqlite`).
-Until M7 snapshots exist, a container restart loses it and this must be repeated.
+Persistence (M7): the login lives in SQLite on local disk (`state/openclaw.sqlite`, rows
+`authProfiles.store` / `auth.sharedStore`). The `a3-state-snapshot` job copies the whole state to
+`gs://chitti-assistant-a3-state/a3/snapshots/` every 5 minutes and within a minute of a token refresh;
+`startup.sh` restores the newest good snapshot at boot (`state-restored` in the logs). Sign in again
+only if the logs show `state-restore-none` / `state-restore-failed`, or ChatGPT turns fail with an
+auth error after a restore (a refresh token used after the last snapshot is single-use and dead).
+
+# If boot restore failed (`state-restore-failed`, then `snapshot-blocked` every minute)
+
+Boot found snapshots but none restored, so new snapshots are blocked to keep the old ones. The agent
+runs on fresh state. Check the `state-restore-attempt-failed` lines for the reason, then either
+- fix the cause and restart the instance (ask first: restarts are a hard-rule-3 action), or
+- accept fresh state: as root in the instance, `rm /tmp/a3-restore-failed`; the next minute's job
+  snapshots the fresh state and, after 6 snapshots (30 min), the old ones are pruned. Redo the ChatGPT
+  sign-in above.
 
 # Gmail + Calendar sign-in for gog (one time; the token survives restarts)
 

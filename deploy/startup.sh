@@ -28,6 +28,13 @@ touch "$OPS_LOG"
 tail -n 0 -F "$OPS_LOG" 2>/dev/null &
 TAIL_PID=$!
 
+# --- 0. Restore OpenClaw state from the newest good bucket snapshot (M7), before anything else writes
+# to $OPENCLAW_STATE_DIR (the per-boot gateway token below, the config step, the gateway). Logs
+# state-restored / state-restore-none / state-restore-failed. Never fails the boot.
+[ -d "$STATE_MOUNT" ] || die "bucket mount missing"
+node /app/jobs/restore.mjs || ops "state-restore-error"
+GATEWAY_PID=""
+
 # --- 1. Secrets (injected by Cloud Run from Secret Manager as env vars) -----------------
 [ -n "${TS_AUTHKEY:-}" ] || die "TS_AUTHKEY missing"
 umask 077
@@ -76,7 +83,9 @@ fi
 mkdir -p "$STATE_DIR"
 AUTH_JSON=""
 if [ -f "$CONFIG_PATH" ]; then
-  AUTH_JSON="$(openclaw config get auth --json 2>/dev/null || true)"
+  # Exit 1 + an error object on stdout when `auth` is unset (e.g. a restored config from before the
+  # ChatGPT sign-in): treat that as "nothing to keep", or `config set` below would fail the boot.
+  AUTH_JSON="$(openclaw config get auth --json 2>/dev/null)" || AUTH_JSON=""
 fi
 cp /app/openclaw.template.json5 "$CONFIG_PATH"
 if [ -n "$AUTH_JSON" ] && [ "$AUTH_JSON" != "null" ]; then
@@ -91,8 +100,20 @@ openclaw approvals set --file /app/exec-approvals.json5 >/dev/null || die "exec 
 ops "exec-approvals-applied" "\"allowlistEntries\":$(openclaw approvals get --json 2>/dev/null \
   | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const f=j.file??j.document??j;process.stdout.write(String(f.agents?.main?.allowlist?.length??"null"))}catch{process.stdout.write("null")}})' || echo null)"
 
-# --- 3. Restore OpenClaw state from the bucket: TODO M7 (snapshot/restore, guided) -------
-ops "state-restore-skipped" "\"reason\":\"not implemented until M7\""
+# --- 3. Persona/workspace files (M7). Repo wins on every boot for AGENTS.md (command-safety rules),
+# SOUL.md and IDENTITY.md, so a rule the agent edited away comes back on restart. USER.md is seeded
+# once (marker "a3-persona"), because the agent records learned preferences there. BOOTSTRAP.md (the
+# first-run naming ritual) is removed: the persona is given.
+WS="$STATE_DIR/workspace"
+mkdir -p "$WS"
+for f in AGENTS.md SOUL.md IDENTITY.md; do cp /app/workspace-seed/$f "$WS/$f"; done
+if ! grep -q 'a3-persona' "$WS/USER.md" 2>/dev/null; then
+  cp /app/workspace-seed/USER.md "$WS/USER.md"
+  ops "persona-applied" "\"userSeeded\":true"
+else
+  ops "persona-applied" "\"userSeeded\":false"
+fi
+rm -f "$WS/BOOTSTRAP.md"
 
 # --- 4. Tailscale: userspace networking, SOCKS5 for outbound, state on the bucket mount --
 mkdir -p "$TS_STATE_DIR" || die "bucket mount not writable"
@@ -166,9 +187,17 @@ GATEWAY_PID=$!
 
 shutdown() { # shutdown <exit code>: 0 on SIGTERM, 1 if a child died (Cloud Run restarts us)
   ops "shutdown" "\"exitCode\":${1:-0}"
-  # TODO M7: final state snapshot to the bucket before exiting.
-  kill -TERM "$GATEWAY_PID" ${FORWARDER_PID:+"$FORWARDER_PID"} 2>/dev/null || true
-  wait "$GATEWAY_PID" 2>/dev/null || true
+  # Final snapshot first, while the gateway still runs (Cloud Run allows ~10 s after SIGTERM). No
+  # --verify to save time; restore verifies anyway. Best effort: the 1-minute job (5-minute interval,
+  # or right after a ChatGPT token refresh) is the real guarantee. snapshot.mjs refuses if boot restore
+  # failed (marker), so this never overwrites good snapshots with empty state.
+  if [ -f "$STATE_DIR/state/openclaw.sqlite" ]; then
+    timeout 8 node /app/jobs/snapshot.mjs --force --no-verify --reason shutdown >/dev/null 2>&1 \
+      || ops "final-snapshot-failed"
+  fi
+  [ -n "$GATEWAY_PID" ] && kill -TERM "$GATEWAY_PID" 2>/dev/null || true
+  kill -TERM ${FORWARDER_PID:+"$FORWARDER_PID"} 2>/dev/null || true
+  [ -n "$GATEWAY_PID" ] && wait "$GATEWAY_PID" 2>/dev/null || true
   kill -TERM "$TAILSCALED_PID" 2>/dev/null || true
   wait "$TAILSCALED_PID" 2>/dev/null || true
   kill -TERM "$TAIL_PID" 2>/dev/null || true

@@ -74,10 +74,13 @@ RUN chown -R root:root /app/focus-finder \
 # Scheduled jobs (M6): installer, command-job scripts, briefing/recap prompts. Root-owned and read-only for
 # the agent, because command jobs run unattended in the gateway and a3-activity is allowlisted.
 COPY deploy/jobs/lib.mjs deploy/jobs/alerts.mjs deploy/jobs/hourly.mjs deploy/jobs/activity.mjs \
-     deploy/jobs/catchup.mjs deploy/jobs/briefing.md deploy/jobs/recap.md deploy/jobs/install-jobs.sh /app/jobs/
-RUN chown -R root:root /app/jobs \
- && chmod 0755 /app/jobs /app/jobs/install-jobs.sh \
- && chmod 0644 /app/jobs/*.mjs /app/jobs/*.md \
+     deploy/jobs/catchup.mjs deploy/jobs/snapshot.mjs deploy/jobs/restore.mjs \
+     deploy/jobs/briefing.md deploy/jobs/recap.md deploy/jobs/install-jobs.sh /app/jobs/
+# Persona/workspace files (M7, synthetic), copied into the workspace by startup.sh.
+COPY workspace/AGENTS.md workspace/SOUL.md workspace/IDENTITY.md workspace/USER.md /app/workspace-seed/
+RUN chown -R root:root /app/jobs /app/workspace-seed \
+ && chmod 0755 /app/jobs /app/jobs/install-jobs.sh /app/workspace-seed \
+ && chmod 0644 /app/jobs/*.mjs /app/jobs/*.md /app/workspace-seed/*.md \
  && printf '#!/bin/sh\nexec /usr/local/bin/node /app/jobs/activity.mjs "$@"\n' > /usr/local/bin/a3-activity \
  && chmod 0755 /usr/local/bin/a3-activity
 

@@ -11,6 +11,12 @@
 !deploy/jobs/hourly.mjs
 !deploy/jobs/activity.mjs
 !deploy/jobs/catchup.mjs
+!deploy/jobs/snapshot.mjs
+!deploy/jobs/restore.mjs
+!workspace/AGENTS.md
+!workspace/SOUL.md
+!workspace/IDENTITY.md
+!workspace/USER.md
 !deploy/jobs/briefing.md
 !deploy/jobs/recap.md
 !deploy/jobs/install-jobs.sh

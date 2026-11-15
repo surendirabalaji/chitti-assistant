@@ -75,6 +75,13 @@ declare_job a3-recap \
   --timeout-seconds 600 "${TELEGRAM[@]}" \
   --description "End-of-day recap: activity counts, meetings, drafts awaiting approval, tomorrow"
 
+# 6. State snapshots (M7): checks every minute, snapshots when due (5 min, or the ChatGPT login changed).
+declare_job a3-state-snapshot \
+  --cron "* * * * *" --tz "$TZNAME" --exact \
+  --command-argv "[\"$NODE\",\"$JOBS_DIR/snapshot.mjs\"]" \
+  --timeout-seconds 150 --no-deliver \
+  --description "Bucket snapshot of OpenClaw state when due (5 min or login change)"
+
 # Missed-job catch-up (briefing before noon, recap before 22:00).
 if LIST="$(openclaw cron list --all --json 2>/dev/null)"; then
   while read -r id key; do
