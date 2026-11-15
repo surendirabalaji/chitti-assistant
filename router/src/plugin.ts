@@ -21,7 +21,8 @@ export interface ModelOverride {
 // The only parts of OpenClaw's api this file uses (structural type, see concept d). Handlers read
 // every event field defensively, so the event type is left open here.
 export type HookName =
-  | "before_model_resolve" | "before_agent_reply" | "model_call_ended" | "llm_output" | "agent_end" | "gateway_stop";
+  | "before_model_resolve" | "before_agent_reply" | "model_call_ended" | "llm_output" | "agent_end"
+  | "before_reset" | "session_end" | "gateway_stop";
 
 export interface HookApi {
   readonly pluginConfig?: unknown; // plugins.entries.a3-router.config
@@ -153,6 +154,10 @@ export class SessionSizes {
     const tokens = usageTokens(usage, calls);
     if (tokens === null) return;
     remember(this.#sizes, sessionId, tokens);
+  }
+
+  forget(key: string | undefined): boolean {
+    return key === undefined ? false : this.#sizes.delete(key);
   }
 }
 
@@ -475,6 +480,36 @@ export function registerRouter(
     } catch {
       // An observer must never break a turn.
     }
+  });
+
+  // /new and /reset: forget the chat's size estimate and follow-up state. Cloud finding (Nov 15): Telegram
+  // /new keeps the same sessionId (it only marks a reset boundary), so the old size stayed and every private
+  // message after /new was held as "privacy-long-context" until a non-private turn re-measured the chat.
+  // Installed 2026.10.9: the /new command fires before_reset with ctx { sessionKey, sessionId (the reset
+  // session) } (dist/commands-reset-hooks-*.mjs); session_end (event sessionId/sessionKey) is a backup.
+  // We store under ctx.sessionId ?? ctx.sessionKey, so both are cleared. Never reads event.messages.
+  const forgetSession = (source: string, reason: unknown, keys: (string | undefined)[]): void => {
+    try {
+      let cleared = false;
+      for (const k of new Set(keys)) {
+        if (k === undefined) continue;
+        if (sessions.forget(k)) cleared = true;
+        if (lastTurns.delete(k)) cleared = true;
+      }
+      write(JSON.stringify({ component: "a3-router", kind: "session_reset", ts: new Date().toISOString(), source, reason: shortCode(reason) ?? null, cleared }));
+    } catch {
+      // An observer must never break a turn.
+    }
+  };
+  api.on("before_reset", (event, ctx) => {
+    const c = obj(ctx);
+    forgetSession("before_reset", event?.reason, [str(c.sessionId), str(c.sessionKey)]);
+  });
+  api.on("session_end", (event, ctx) => {
+    const reason = event?.reason;
+    if (reason !== "new" && reason !== "reset") return; // idle/shutdown/compaction etc. keep the estimate
+    const c = obj(ctx);
+    forgetSession("session_end", reason, [str(event?.sessionId), str(event?.sessionKey), str(c.sessionId), str(c.sessionKey)]);
   });
 
   api.on("gateway_stop", () => {

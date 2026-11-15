@@ -87,7 +87,8 @@ describe("registerRouter: hook registration", () => {
     const { api, calls } = fakeApi();
     registerRouter(api as never);
     expect(calls.map((c) => c.name)).toEqual([
-      "before_model_resolve", "before_agent_reply", "model_call_ended", "llm_output", "agent_end", "gateway_stop",
+      "before_model_resolve", "before_agent_reply", "model_call_ended", "llm_output", "agent_end",
+      "before_reset", "session_end", "gateway_stop",
     ]);
   });
 
@@ -426,6 +427,8 @@ describe("A7-A9: health, held reply, route_result, rate-limit config", () => {
       callEnded: h("model_call_ended"),
       end: h("agent_end"),
       output: h("llm_output"),
+      reset: h("before_reset"),
+      sessionEnd: h("session_end"),
     };
   }
   const PRIVATE = "This is confidential: remind me my locker code is on a sticky note.";
@@ -510,6 +513,49 @@ describe("A7-A9: health, held reply, route_result, rate-limit config", () => {
     expect(await x.claim({ cleanedBody: "What is 12 times 9?" }, { runId: "lh3", sessionId: "s3" })).toBeUndefined();
     expect(await x.resolve({ prompt: "What is 12 times 9?" }, { runId: "lh3", sessionId: "s3" })).toEqual(CHATGPT);
   });
+  // Cloud bug Nov 15: Telegram /new keeps the same sessionId, so the old size stayed and private
+  // messages after /new were held. before_reset (fired by the /new command) must clear it.
+  it("/new (before_reset, same sessionId): size forgotten, the next private message goes to local Gemma", async () => {
+    const x = setup();
+    x.output({ sessionId: "s5", usage: { input: 21000, output: 500, total: 21665 } }, {});
+    x.reset({ reason: "new", messages: [{ role: "user", content: "SECRET-TEXT" }] }, { sessionId: "s5", sessionKey: "agent:main:main" });
+    expect(await x.claim({ cleanedBody: PRIVATE }, { runId: "nw1", sessionId: "s5" })).toBeUndefined();
+    expect(await x.resolve({ prompt: PRIVATE }, { runId: "nw1", sessionId: "s5" })).toEqual(GEMMA);
+    const lines = x.parsed();
+    expect(lines[0]).toMatchObject({ kind: "session_reset", source: "before_reset", reason: "new", cleared: true });
+    expect(lines[1]).toMatchObject({ kind: "route_decision", rule: "privacy-sensitive", sessionSizeEst: 0 });
+    expect(x.lines.join("\n")).not.toContain("SECRET-TEXT"); // reset transcript never logged
+  });
+  it("before_reset clears by sessionKey too (when the size was stored under the key)", async () => {
+    const x = setup();
+    x.output({ usage: { total: 25000 } }, { sessionKey: "agent:main:main" });
+    x.reset({ reason: "reset" }, { sessionKey: "agent:main:main" });
+    expect(await x.resolve({ prompt: "hi" }, { sessionKey: "agent:main:main" })).toEqual(GEMMA);
+    expect(x.parsed().at(-1)).toMatchObject({ rule: "simple-task", sessionSizeEst: 0 });
+  });
+  it("before_reset for another chat leaves this chat's size alone; cleared:false logged", async () => {
+    const x = setup();
+    x.output({ sessionId: "s6", usage: { total: 25000 } }, {});
+    x.reset({ reason: "new" }, { sessionId: "other" });
+    expect(x.parsed()[0]).toMatchObject({ kind: "session_reset", cleared: false });
+    expect(await x.resolve({ prompt: "hi" }, { sessionId: "s6" })).toEqual(CHATGPT);
+  });
+  it("session_end: reason new clears (backup path); idle/shutdown keep the estimate", async () => {
+    const x = setup();
+    x.output({ sessionId: "s7", usage: { total: 25000 } }, {});
+    x.sessionEnd({ sessionId: "s7", reason: "idle" }, { sessionId: "s7" });
+    expect(x.lines).toHaveLength(0);
+    expect(await x.resolve({ prompt: "hi" }, { sessionId: "s7" })).toEqual(CHATGPT);
+    x.sessionEnd({ sessionId: "s7", reason: "new", messageCount: 9 }, { sessionId: "s7" });
+    expect(await x.resolve({ prompt: "hi" }, { sessionId: "s7" })).toEqual(GEMMA);
+    expect(x.parsed().find((l) => l.kind === "session_reset")).toMatchObject({ source: "session_end", reason: "new", cleared: true });
+  });
+  it("reset hooks never throw on junk input", () => {
+    const x = setup();
+    expect(() => x.reset(null, null)).not.toThrow();
+    expect(() => x.sessionEnd(undefined, 42)).not.toThrow();
+  });
+
   it("custom longContextHeldReply from config; the local-down held reply is unchanged", async () => {
     const x = setup({ longContextHeldReply: "Too long: /new please." });
     x.output({ sessionId: "s4", usage: { input: 25000, output: 500, total: 25500 } }, {});

@@ -1,0 +1,58 @@
+2026-11-15 image agent:2026-11-15a deploy checks (cloud, read-only Cloud Logging)
+==============================================================================
+Read by the assistant with `gcloud --configuration=chitti-a3 logging read` (read-only), Nov 15 ~10:18-10:45 UTC
+(= 2:18-2:45 AM PST). Owner chat id, tokens and addresses not copied. Instance ids shortened.
+
+Image: us-west1-docker.pkg.dev/chitti-assistant-a3/a3/agent:2026-11-15a
+       digest sha256:e401bf636616af9b2a8bf8793946fe633d795135394a49bd3598fedcbedb0da0 (commit 8a4ce21)
+Service account: a3-agent-v2. Instance generation 3. Deployed by the student (image-only update).
+
+Old container (…73572c4cbe879041c195553590eee93af96a7cbd…, image 2026-11-14e)
+  10:16:22  snapshot (forced)          <- student's pre-deploy snapshot
+  10:16:42  shutdown
+  10:16:49  snapshot (shutdown)        final snapshot on SIGTERM
+  10:16:49  stopped
+
+New container (instance id ends …ea044d9b98db)
+  10:17:44  boot
+  10:17:52  state-restored
+  10:19:02  config-applied
+  10:20:37  exec-approvals-applied
+  10:20:38  persona-applied
+  10:20:39  tailscale-up
+  10:20:42  gog-client-stored / 10:20:43 gog-status / forwarder-started
+  10:21:32  chatgpt-login-present      -> ChatGPT login survived the redeploy (restored from snapshot)
+  10:24:11  isolation-report user=agent capEff=0000000000000000, listening: loopback only
+            (127.0.0.1:1055 socks, :11435 forwarder, :18789 gateway, [::1]:18789, tailscale internals)
+  10:24:56  [gateway] http server listening (6 plugins: a3-router, memory-core, ollama, openai, parallel, telegram; 107.0s)
+  10:25:31  [gateway] startup outcomes: internal-hooks=loaded; ...
+  10:25-10:30 job-declare-failed x5 (a3-alerts, a3-hourly-health, a3-hourly-cloud, a3-briefing, a3-recap):
+            "gateway starting" / "Agent main has not completed startup inspection" / connect timeouts
+            (known busy-boot case on 1 vCPU)
+  10:30:57  snapshot-failed (timeout)  busy boot, known
+  10:31:29  job-declared a3-state-snapshot unchanged
+  10:31:56  job-declared a3-watch created
+  10:32:05  watch-baseline USER.md bytes=3712 ; watch-baseline MEMORY.md bytes=0
+  10:32:40  jobs-installed failed=5 -> jobs-install-retry attempt=1
+  10:32:44  watch-check changed=0      (no watch-new-jobs line)
+  10:33:51-10:36:06 job-declared unchanged: a3-alerts, a3-hourly-health, a3-hourly-cloud, a3-briefing,
+            a3-recap, a3-state-snapshot, a3-watch
+  10:34:52  snapshot-failed (timeout, reason first)
+  10:36:26  jobs-installed failed=0    -> all 7 jobs declared
+  10:37:13  watch-check changed=0      (a3-watch runs as a gateway command job, slot 2-59/5)
+  10:40:05  alert-check
+  10:40:12  snapshot (first) -> gs://chitti-assistant-a3-state/a3/snapshots/snap-20261115T104011401Z.tar.gz
+  10:42:03  watch-check changed=0
+
+Leaked-container check: all log entries since 10:17 UTC carry one instance id (…ea044d9b98db), plus entries
+with no id (platform lines). Old container logged `stopped` before the new boot. -> one container.
+
+a3-watch first run: the jobs map in the watch state file was empty, so every job not created by
+install-jobs.sh would have been reported as new. No watch-new-jobs line -> the agent-created 2 AM reminder
+job is no longer in `cron list --all` (probably a one-shot job removed after it ran; not verified directly).
+
+Template fixes: deploy/openclaw.template.json5 at 8a4ce21 has `skills.workshop.autonomous.mode: "off"`
+(line 48) and `tools.fs.workspaceOnly: true` (line 140); startup.sh copies the template on every boot
+(config-applied 10:19:02). Live value after boot: checked by the student over SSH (see below) / not verified.
+
+Not verified here: Telegram retests (held reply, canary, weather, send-email, watch message) -> see below.
