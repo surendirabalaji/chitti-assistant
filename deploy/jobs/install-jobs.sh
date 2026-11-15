@@ -14,6 +14,9 @@ TZNAME="America/Los_Angeles"
 NODE="$(command -v node)"
 OWNER="${TELEGRAM_OWNER_ID:?TELEGRAM_OWNER_ID missing}"
 FAILED=0
+# The gateway answers slowly right after boot on 1 vCPU (cloud, Nov 14: "OpenClaw took too long to
+# respond" with the 30 s default).
+CLI_TIMEOUT_MS=90000
 
 ops() { # ops <event> [extra JSON fields without braces]
   printf '{"component":"a3-ops","kind":"ops","event":"%s","ts":"%s"%s}\n' \
@@ -24,7 +27,7 @@ declare_job() { # declare_job <key> <cron add args...>
   local key="$1"; shift
   local out errfile
   errfile="$(mktemp)"
-  if out="$(openclaw cron add --declaration-key "$key" --name "$key" "$@" --json 2>"$errfile")"; then
+  if out="$(openclaw cron add --timeout "$CLI_TIMEOUT_MS" --declaration-key "$key" --name "$key" "$@" --json 2>"$errfile")"; then
     local state
     state="$(printf '%s' "$out" | "$NODE" -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(j.created?"created":j.updated?"updated":"unchanged")}catch{process.stdout.write("ok")}})')"
     ops "job-declared" "\"job\":\"$key\",\"result\":\"$state\""
@@ -79,14 +82,14 @@ declare_job a3-recap \
 declare_job a3-state-snapshot \
   --cron "* * * * *" --tz "$TZNAME" --exact \
   --command-argv "[\"$NODE\",\"$JOBS_DIR/snapshot.mjs\"]" \
-  --timeout-seconds 150 --no-deliver \
+  --timeout-seconds 200 --no-deliver \
   --description "Bucket snapshot of OpenClaw state when due (5 min or login change)"
 
 # Missed-job catch-up (briefing before noon, recap before 22:00).
-if LIST="$(openclaw cron list --all --json 2>/dev/null)"; then
+if LIST="$(openclaw cron list --timeout "$CLI_TIMEOUT_MS" --all --json 2>/dev/null)"; then
   while read -r id key; do
     [ -n "${id:-}" ] || continue
-    if openclaw cron run "$id" >/dev/null 2>&1; then
+    if openclaw cron run --timeout "$CLI_TIMEOUT_MS" "$id" >/dev/null 2>&1; then
       ops "job-missed-catchup" "\"job\":\"$key\""
     else
       ops "job-catchup-failed" "\"job\":\"$key\""

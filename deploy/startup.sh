@@ -216,11 +216,12 @@ trap 'shutdown 0' TERM INT
   PORTS="$(ss -ltnH 2>/dev/null | awk '{print $4}' | sort -u | paste -sd, -)"
   ops "isolation-report" "\"user\":\"$(id -un)\",\"uid\":$(id -u),\"capEff\":\"$CAPEFF\",\"listening\":\"$PORTS\""
   # --- 8b. Scheduled jobs (M6): declare/update from the image, then missed-job catch-up. The HTTP
-  # listener can come up before the scheduler accepts calls, so retry a few times.
-  for attempt in 1 2 3; do
+  # listener comes up before agent "main" finishes its startup preparation (cloud Nov 14: "Agent main
+  # has not completed startup inspection"), so retry; each run is idempotent.
+  for attempt in 1 2 3 4 5; do
     /app/jobs/install-jobs.sh && break
     ops "jobs-install-retry" "\"attempt\":$attempt"
-    sleep 30
+    sleep 45
   done
 ) &
 

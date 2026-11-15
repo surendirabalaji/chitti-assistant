@@ -1,0 +1,39 @@
+Bundled redeploy, image agent:2026-11-14b (index sha256:61c5fcc887ebaca471ee4c593e2423ca13f90eeaa1cbc63089a79cc1344349d1,
+linux/amd64 manifest sha256:48fbab5a50b9af8e47ca46f660e40772ca400728c0b8d832c0ecdef5b5708967), commit 9293c42.
+Student ran: pre-deploy snapshot over SSH (snap-20261115T014451000Z.tar.gz) + gcloud beta run instances deploy (Nov 14 ~5:45 PM PST).
+Lines below: Cloud Logging, component a3-ops / a3-router, read by the assistant (UTC). Owner Telegram id omitted.
+
+Boot (01:45:50) -> ready
+01:45:56 state-restored snapshot=snap-20261115T014451000Z.tar.gz ageSec=65
+01:47:08 config-applied
+01:48:41 exec-approvals-applied allowlistEntries=5
+01:48:41 persona-applied userSeeded=true
+01:48:44 tailscale-up / 01:48:46 gog-client-stored / 01:48:47 gog-status / 01:48:47 forwarder-started
+01:49:36 chatgpt-login-present          <- ChatGPT login survived the redeploy (no sign-in)
+01:52:07 isolation-report capEff=0000000000000000 listening=loopback only (127.0.0.1:1055,11435,18789,...; [::1]:18789)
+
+Job installer
+01:53:06 job-declare-failed a3-alerts "OpenClaw took too long to respond." (CLI default 30 s)
+01:53:45..01:55:29 job-declare-failed a3-hourly-health/-cloud/briefing "Agent main has not completed startup inspection and preparation. Inspection and writable admission continue after the Gateway listener binds."
+01:56:49 job-declared a3-recap created / 01:57:52 a3-state-snapshot created / 01:58:37 jobs-installed failed=4 -> retry 1
+01:59:28..02:01:11 a3-alerts, a3-hourly-health, a3-hourly-cloud, a3-briefing created; recap + snapshot unchanged
+02:04:07 job-catchup-failed a3-recap ; jobs-installed failed=0
+
+Scheduled runs
+02:00:08 hourly local=up
+02:00:16 alert-check (gog read from a command job works), then every 5 min (due 0)
+02:01:02 route_decision tool-task cloud signals=trigger:cron   (18:00 PT recap slot fired by itself)
+02:03:49 route_result tool-task cloud openai/gpt-6-astra ok=true latencyMs=167543
+02:04:03 gateway: [telegram] outbound send ok ... messageId=116   (recap delivered; owner to confirm content)
+02:04:06 cron.run (catch-up) -> refused because the recap was still/just running (list read at 02:03:30, run ended 02:03:49)
+
+Snapshots
+02:00:09, 02:02:55, 02:05:52 snapshot-failed timeout (110 s limit) during the busy boot period
+02:10:59 snapshot reason=first snap-20261115T021058725Z.tar.gz verified ms=6657
+02:16:06 snapshot reason=interval snap-20261115T021606170Z.tar.gz ms=6431
+Student's manual measurement over SSH (02:12, concurrent with the job): backup create real 18.4 s (user 3.8 s), verify real 24.3 s (user 1.7 s);
+state 43M of which cache 35M (skipped as volatile); archive ~720 KB. -> waiting on SQLite/IO under contention, not CPU or size.
+
+Fixes written locally after this (not deployed yet): catchup skips state.runningAtMs; install-jobs cron CLI --timeout 90000;
+startup retries 5 x 45 s; snapshot timeout 170 s, job timeout 200 s. 25 job tests pass.
+Not verified yet: run-now briefing, seeded-meeting alert, hourly-cloud lines (05 past), restart test with a fresh in-cloud snapshot.

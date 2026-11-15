@@ -35,6 +35,9 @@ export function missedJobs(listJson, nowMs, windows = WINDOWS) {
     const key = job?.declarationKey;
     const win = typeof key === "string" ? windows[key] : undefined;
     if (!win || typeof job.id !== "string" || job.enabled === false) continue;
+    // Running right now (e.g. the slot fired while install-jobs was still working): not missed.
+    // Seen in the cloud Nov 14: the 18:00 recap ran 02:01-02:03 UTC; catch-up read the list mid-run.
+    if (typeof job.state?.runningAtMs === "number") continue;
     const [slot, end] = win;
     if (now.hhmm < slot || now.hhmm >= end) continue; // outside the catch-up window
     const last = job.state?.lastRunAtMs;

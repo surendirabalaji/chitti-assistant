@@ -74,7 +74,7 @@ export function authFingerprint(stateDir = OC_STATE) {
   return found ? h.digest("hex") : "none";
 }
 
-export function takeSnapshot({ reason, verify = true, timeoutMs = 110000 } = {}) {
+export function takeSnapshot({ reason, verify = true, timeoutMs = 170000 } = {}) {
   const t0 = Date.now();
   const work = mkdtempSync("/tmp/a3-snap-");
   try {

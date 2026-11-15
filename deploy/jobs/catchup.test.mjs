@@ -26,6 +26,10 @@ test("window edges: 07:29 no, 07:30 yes, 11:59 yes, 12:00 no; recap 18:00-22:00"
   assert.equal(missedJobs([job("a3-recap")], la("22:00")).length, 0);
 });
 
+test("a job that is running right now is not caught up (cloud finding Nov 14)", () => {
+  assert.deepEqual(missedJobs([job("a3-recap", la("18:00", "15"), { state: { lastRunAtMs: la("18:00", "15"), runningAtMs: la("18:01") } })], la("18:03")), []);
+});
+
 test("disabled, unknown key, missing id, junk input -> ignored", () => {
   const list = [job("a3-briefing", undefined, { enabled: false }), job("a3-alerts"), { declarationKey: "a3-briefing" }, null];
   assert.deepEqual(missedJobs(list, la("09:00")), []);
