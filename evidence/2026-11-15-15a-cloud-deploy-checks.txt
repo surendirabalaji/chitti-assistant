@@ -56,3 +56,41 @@ Template fixes: deploy/openclaw.template.json5 at 8a4ce21 has `skills.workshop.a
 (config-applied 10:19:02). Live value after boot: checked by the student over SSH (see below) / not verified.
 
 Not verified here: Telegram retests (held reply, canary, weather, send-email, watch message) -> see below.
+
+== Telegram retests on 2026-11-15a (Nov 15 ~2:44-2:56 AM PST, student; router lines read by the assistant) ==
+SSH (student): openclaw.json has workshop.autonomous.mode "off" (line 48) and fs.workspaceOnly true (line 140)
+  after boot; canary files recreated (fake values).
+10:45:23 tool-task cloud (heuristic, size 0) -> route_result openai/gpt-6-astra ok   (weather)
+10:47:14 tool-task cloud (gemma, 15103) -> ok ; 10:49:57 tool-task cloud (17510) -> ok ; 10:50:32 (18961) -> ok
+  (send-email: approval -> sent, "A3 retest" seen in the inbox at 2:48 AM per the agent's reply; calendar)
+10:51:23 privacy-long-context held (fixed, size 21665) -> route_result none ok:false   PASS (held reply shown)
+10:51:29 /new -> [hooks/session-memory] note saved ; 10:51:38 same private msg -> held again (size 21665)  BUG
+10:51:53 /new -> note saved ; 10:52:06 private msg -> held again (21665)                                    BUG
+10:52:39 non-private msg -> long-context cloud (21665); 10:53:07 next -> tool-task (14206): size re-measured
+Cause: gateway lines show the same sessionId (02468db7…) for runs before and after /new: Telegram /new in
+  2026.10.9 keeps the sessionId (reset boundary), so the router's per-session size estimate was never
+  cleared, and held turns make no model call to re-measure it. Fails safe (held, nothing sent).
+Fix (assistant-written at the student's request "Fix and redeploy", commit b8a0f8b): clear size + follow-up
+  state on plugin hook before_reset (fired by the /new command, dist/commands-reset-hooks-*.mjs) and on
+  session_end reason new/reset; one metadata line kind=session_reset. 253 router tests; in the image
+  `plugins inspect a3-router --runtime` lists before_reset and session_end.
+Reminder 2:54 AM "remind me at 2:55": 10:54:16 tool-task cloud -> confirm question; 10:54:48 follow-up cloud
+  (gemma verdict); 10:55:04 "cron: admin management" (no "cron: job added"); 10:55:19 reply = reminder given
+  immediately (time had passed). Not a code bug: 1-minute lead < confirm round trip. a3-watch 10:57 cron.list:
+  no new job.
+10:57:01 watch-file-changed (USER.md/MEMORY.md) -> Telegram message: ask the student (not verified here).
+
+== Image 2026-11-15b deploy (student) ==
+Image digest sha256:8a4311f4221065ddeb17df3441bc90c4c687a318c2f45ae661e0c144cb1baa68 (b8a0f8b), generation 4.
+11:05:25 shutdown ; 11:05:33 final-snapshot-failed (8 s `timeout` too short; 10:16 run took 7 s). Boot restored
+  the 11:01:07 interval snapshot (login unchanged in between). Known limit, not changed.
+11:05:55 boot ; 11:06:05 state-restored ; 11:07:43 config-applied ; 11:09:48 exec-approvals + persona ;
+11:09:52 tailscale-up ; 11:09:56 gog + forwarder ; 11:11:01 chatgpt-login-present ;
+11:14:46 isolation-report capEff 0 ; 11:15:58 http server listening (6 plugins; 161.4 s) ;
+11:16:36 internal-hooks=loaded ; 11:16-11:23 job-declare-failed x5 (busy boot) ; 11:23:28 watch-jobs-failed
+  timeout (boot load) ; 11:25:52 jobs-installed failed=5 -> retry ; 11:30:53 jobs-installed failed=0 (7 jobs)
+11:27:55, 11:32, 11:37, 11:42, 11:47 watch-check changed=0 (no watch-new-jobs)
+Snapshots: 11:22:34 and 11:30:32 snapshot-failed (first, timeouts during boot), then silence until
+  11:45:44 snapshot ok (10.1 s) -> snap-20261115T114542818Z. The gap matches OpenClaw's recurring-job error
+  backoff (30s, 60s, 5m, 15m, 60m; docs automation/cron-jobs/managing-jobs.md), assumed, not proven.
+One container: all entries since 11:05:50 carry instance id …c807019fa419 (plus platform lines with no id).

@@ -1,6 +1,21 @@
 # Status
 
-Last updated: **Sun Nov 15, 2026, ~12:55 AM PST** (2026-11-14e deployed, memory recall passes in the cloud; next: briefing run-now, then start the 48-hour run).
+Last updated: **Sun Nov 15, 2026, ~4:20 AM PST** (image **2026-11-15b deployed and retested**; student sleeping until 8 AM; next: wake-up checklist below, start the 48-hour run by 9 AM PST).
+
+## Wake-up checklist (Sun Nov 15, 8 AM PST)
+1. Read Cloud Logging: a snapshot succeeded after 11:45 UTC (last good `snap-20261115T114542818Z`; 4 failed 11:53–12:09 UTC while chatting; next retry expected ~12:24 UTC by OpenClaw's error backoff, then 60 min). If none succeeded by 8 AM: run the snapshot job once over SSH (`openclaw cron run <a3-state-snapshot id> --wait`, as user agent), close SSH.
+2. The 7:30 AM briefing arrived in Telegram (free check of the cron path).
+3. Mac: restart, plugged in, lid open, Low Power off; Ollama app; `ollama ps`; `curl -s http://127.0.0.1:11434/api/tags`; `tailscale status`; `tailscale serve status` (TCP 11434 → 127.0.0.1:11434); `caffeinate -dims`; laptop gateway stays off.
+4. Router health back to up in the logs (`kind: health`, `to: up`).
+5. Telegram: `/new`, "What is 7 times 5?" (local), "Explain step by step why the sky is blue." (cloud), "What car do I have?" (memory) → start the 48-hour run (note the start time). **No restarts/redeploys after that.**
+6. Then M8 grader access, docs.
+
+## Nov 15 early morning (2:15–4:20 AM PST) summary
+- **Image 2026-11-15a deployed** (digest `sha256:e401bf63…0da0`, commit 8a4ce21): boot checks pass (login restored, internal-hooks loaded, 7 jobs incl. a3-watch, one container, snapshots); student verified over SSH that `workspaceOnly: true` and `workshop.autonomous.mode: "off"` survive boot. Telegram: weather, send-email (approve → sent), calendar, held reply in a long chat pass; agent-created 2 AM job gone (one-shot).
+- **Bug found + fixed:** Telegram `/new` keeps the same sessionId in 2026.10.9 (reset boundary), so the router's chat-size estimate survived `/new` and private messages stayed held (fail-safe). Fix: forget size + follow-up state on `before_reset` / `session_end` (new/reset), log `kind: session_reset` (commit b8a0f8b, 253 router tests; assistant-written at the student's request).
+- **Image 2026-11-15b DEPLOYED** (digest `sha256:8a4311f4221065ddeb17df3441bc90c4c687a318c2f45ae661e0c144cb1baa68`, generation 4; booted 11:05:55 UTC, jobs ready 11:30:53). Retests pass: long chat (67k) private → held; `/new` → `session_reset cleared:true` → same message → local Gemma (15.6 s); a3-watch Telegram diff for USER.md (+4 lines, 4:03 AM); canary reads blocked (student-reported).
+- **Known limits (record in README/audit, not fixing):** final shutdown snapshot `timeout 8` too short (failed 11:05:33; boot restored the 11:01 snapshot); **1 vCPU overload** when a chat turn and `backup create --verify` overlap: `liveness heartbeat delayed … 32 s`, turns 50–140 s (web search 80 s), snapshots time out and the cron error backoff stretches the gap (30 s → 60 s → 5 m → 15 m → 60 m). **Student chose to stay on 1 vCPU (Nov 15 ~4:10 AM).** Reminder with a 1-minute lead was given immediately instead of scheduled (latency + confirm step). a3-watch: blank lines render as empty bullets (cosmetic); one-shot jobs created and removed between two 5-min checks are not reported. Two `reasoning-heavy` decisions with sessionSizeEst 0 at 12:09:49 and 12:12:14 UTC during the long chat: source not identified.
+- Evidence: `evidence/2026-11-15-15a-cloud-deploy-checks.txt`.
 
 This file wins over every other doc when they conflict. Update it at the end of every work session.
 
