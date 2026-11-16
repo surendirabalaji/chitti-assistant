@@ -1,0 +1,17 @@
+48-hour run checkpoint: Mon Nov 16 06:59 UTC (Sun Nov 15 10:59 PM PST), run hour ~14.2
+=====================================================================================
+Read-only Cloud Logging + bucket listing + instance describe by the assistant. Nothing restarted or changed.
+
+Instance: generation 4 (image 2026-11-15b), conditions ContainerReady/ResourcesAvailable/Running True.
+Containers since run start (16:45 UTC): one instance id (…c807019fa419), no boot/shutdown lines.
+  Container up since 11:05:55 UTC (~19.9 h).
+a3-ops events since run start: alert-check 171, watch-check 171, snapshot 139, snapshot-failed 1
+  (20:08:55 UTC timeout, next ok 20:11:12), hourly 14 (every hour 17:00-06:00 UTC).
+Latest snapshots: snap-20261116T065109267Z, snap-20261116T065711838Z.
+Hourly cloud turns: 14/14 tool-task -> openai/gpt-6-astra ok (6-45 s).
+End-of-day recap 6:00 PM PST (02:00:05 UTC): tool-task cloud ok (69.3 s). Delivery to Telegram: ask the student.
+Router health: no health transition lines since 16:45 UTC -> laptop stayed reachable (no down events).
+No user chat turns after the warm-up. No watch-file-changed, no watch-new-jobs.
+Finding: 02:00:06 UTC "workspace bootstrap file USER.md is 4006 chars (limit 4000); truncating in injected
+  context" -> the memory lines the agent appended on Nov 15 (favourite colour, gym) pushed USER.md 6 chars over
+  the limit; the end of the file is cut from the prompt. Not changed (no edits during the run).
