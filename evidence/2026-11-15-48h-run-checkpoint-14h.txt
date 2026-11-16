@@ -15,3 +15,8 @@ No user chat turns after the warm-up. No watch-file-changed, no watch-new-jobs.
 Finding: 02:00:06 UTC "workspace bootstrap file USER.md is 4006 chars (limit 4000); truncating in injected
   context" -> the memory lines the agent appended on Nov 15 (favourite colour, gym) pushed USER.md 6 chars over
   the limit; the end of the file is cut from the prompt. Not changed (no edits during the run).
+Recap delivery confirmed (student pasted the Telegram text): "44 requests (local Gemma 5, cloud ChatGPT 38,
+  held 1, unavailable 0); failed 0. Scheduled turns: 16; meeting alerts sent: 0; laptop checks: 11 up, 4 down.
+  Logs start at 3:06 AM, when the agent last started". Consistent with the logs: container boot 11:05:55 UTC
+  (3:06 AM PST); held 1 = the 4:14 AM privacy-long-context test; 4 down = hourly checks during the Mac's
+  overnight sleep (health flapping 14:22-15:39 UTC); 15 hourly checks 3 AM-6 PM.
