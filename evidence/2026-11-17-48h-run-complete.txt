@@ -1,0 +1,29 @@
+48-hour run: COMPLETE
+=====================
+Window: Sun Nov 15 2026 16:45 UTC (8:45 AM PST) -> Tue Nov 17 16:45 UTC (8:45 AM PST).
+Checked by the assistant at Tue Nov 17 17:10 UTC (9:10 AM PST), read-only (Cloud Logging, instance describe,
+bucket listing). Nothing restarted or changed.
+
+Continuity
+- Instance a3-agent generation 4 (image agent:2026-11-15b), condition Running True since
+  2026-11-15T11:05:54Z ("Started instance in 6.82s"); no later start.
+- No boot / shutdown / stopped / child-exited / "Shutting down" lines after 16:45 UTC Nov 15.
+- All log entries in the window carry one container id (…c807019fa419).
+- Hourly health line 2026-11-17T17:00:01Z: uptimeSec=194046 (53.9 h since the 11:05:55 UTC Nov 15 boot).
+
+Jobs (a3-ops events, 16:45 UTC Nov 15 -> 17:10 UTC Nov 17)
+- alert-check 582, watch-check 581, hourly 49 (every hour), snapshot 476, snapshot-failed 2
+  (2026-11-15T20:08:55Z and 2026-11-16T19:07:52Z, both timeouts, next run ok). Latest snapshot
+  snap-20261117T170409957Z.
+- Hourly health: 49/49 local=up (laptop reachable for the whole run); no router health transition lines.
+
+Model turns in the window (route_result)
+- 53 x cloud openai/gpt-6-astra ok:true, 0 failures, 0 held, 0 local.
+  = 48 hourly cloud evidence turns + 2 morning briefings (Nov 16 15:30:16Z 15.6 s, Nov 17 15:30:30Z 29.9 s)
+    + 2 evening recaps (Nov 16 02:01:14Z 69.4 s; Nov 17 02:01:14Z 69.4 s) + the warm-up memory turn
+    that finished at 16:45:31Z.
+  (Nov 16 02:01 is the Nov 15 6 PM PST recap; Nov 17 02:01 is the Nov 16 recap.)
+- No local Gemma turns during the window: local availability is shown by the 49 hourly checks, and the local
+  path by the warm-up turn at 16:42:43Z (just before the window) and earlier tests. Note this honestly in the
+  README/performance report.
+Telegram delivery: Nov 15 recap confirmed by the student; Nov 16/17 briefings + Nov 16 recap: ask the student.

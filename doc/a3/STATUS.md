@@ -1,8 +1,8 @@
 # Status
 
-Last updated: **Sun Nov 15, 2026, ~8:50 AM PST**.
+Last updated: **Tue Nov 17, 2026, ~9:15 AM PST** (48-hour run complete; deadline tonight 11:59 PM PST).
 
-**48-HOUR RUN STARTED Sun Nov 15, 8:45 AM PST (16:45 UTC)** on image 2026-11-15b, 1 vCPU. Planned end **Tue Nov 17, 8:45 AM PST**. **No restarts, redeploys, config edits or SSH changes on the cloud agent until then.** Keep the Mac plugged in, lid open, `caffeinate -dims` running, laptop gateway off. Warm-up passed (local 41 s cold, cloud 17 s, memory 80 s); overnight snapshots, hourly turns and the 7:30 briefing all ran (`evidence/2026-11-15-48h-run-start.txt`). Known: duplicate health lines (two pollers, unexplained). Next: M8 grader access + docs/README/audit, video Mon.
+**48-HOUR RUN COMPLETE (Tue Nov 17, 8:45 AM PST; verified 9:10 AM, `evidence/2026-11-17-48h-run-complete.txt`): no restart, 49/49 hourly checks local=up, 53/53 cloud turns ok, 2 snapshot timeouts self-recovered. No local Gemma turns inside the window (only scheduled cloud turns ran).** Started Sun Nov 15, 8:45 AM PST (16:45 UTC) on image 2026-11-15b, 1 vCPU. Planned end **Tue Nov 17, 8:45 AM PST**. **No restarts, redeploys, config edits or SSH changes on the cloud agent until then.** Keep the Mac plugged in, lid open, `caffeinate -dims` running, laptop gateway off. Warm-up passed (local 41 s cold, cloud 17 s, memory 80 s); overnight snapshots, hourly turns and the 7:30 briefing all ran (`evidence/2026-11-15-48h-run-start.txt`). Known: duplicate health lines (two pollers, unexplained). Next: M8 grader access + docs/README/audit, video Mon.
 
 ## Wake-up checklist (Sun Nov 15, 8 AM PST) — done 8:45 AM
 1. Read Cloud Logging: a snapshot succeeded after 11:45 UTC (last good `snap-20261115T114542818Z`; 4 failed 11:53–12:09 UTC while chatting; next retry expected ~12:24 UTC by OpenClaw's error backoff, then 60 min). If none succeeded by 8 AM: run the snapshot job once over SSH (`openclaw cron run <a3-state-snapshot id> --wait`, as user agent), close SSH.

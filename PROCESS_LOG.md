@@ -243,3 +243,6 @@ _To be written by the student._
 ### 2026-11-15 morning: 48-hour run start
 - The assistant read Cloud Logging read-only for the overnight period (snapshots recovered at 12:24 UTC, hourly cloud turns, 7:30 AM briefing, laptop health flapping during Mac sleep, duplicate health lines) and the warm-up turns; the student ran the laptop checks and the Telegram warm-up (`/new`, local, cloud, memory: all routed and answered as expected).
 - 48-hour run started Sun Nov 15, 8:45 AM PST. No code changed. Evidence `evidence/2026-11-15-48h-run-start.txt`.
+
+### 2026-11-17 morning: 48-hour run complete
+- The assistant checked read-only (Cloud Logging, instance describe, bucket) at 9:10 AM PST: no restart since Nov 15 11:05 UTC (uptime 53.9 h), one container, 49/49 hourly checks with the laptop up, 53 cloud turns all ok (hourly evidence turns, 2 briefings, 2 recaps, warm-up), 476 snapshots with 2 self-recovered timeouts. No local Gemma turns inside the window. Evidence `evidence/2026-11-17-48h-run-complete.txt`, checkpoint `evidence/2026-11-15-48h-run-checkpoint-14h.txt`.

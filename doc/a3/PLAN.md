@@ -87,7 +87,7 @@ Code done + local container restart test Nov 14 (`evidence/2026-11-14-m7-snapsho
 
 ## M9 Run, docs, submission
 - [ ] Overnight trial run Nov 14 → review
-- [ ] 48-hour run (started Sun Nov 15 8:45 AM PST, ends Tue Nov 17 8:45 AM PST); export logs every 12 h
+- [x] 48-hour run (completed, started Sun Nov 15 8:45 AM PST, ends Tue Nov 17 8:45 AM PST); export logs every 12 h
 - [ ] README (setup, architecture, routing rules, held policy, privacy statement, rate-limit toggle, run-now)
 - [ ] Security audit (≥5 risks, mitigations, remaining risks, approval + allowlist, isolation report)
 - [ ] Performance report (≥3 task types; latency, quality, cost; measured only)
