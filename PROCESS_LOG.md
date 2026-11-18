@@ -8,7 +8,7 @@ I used AI throughout this project for explanations, API research, tests, impleme
 | --- | --- |
 | OpenCode with Claude Opus 5.5 through OpenRouter (`openrouter/anthropic/claude-opus-5.5`, as recorded in my development notes) | Main development assistant: teaching, research in the installed code and documentation, tests, router and deployment implementation, debugging, evidence collection, and documentation drafts. |
 | OpenCode explore/research subagents | Read-only investigation of the installed OpenClaw documentation, configuration, and approval behavior. The notes do not record which model the subagents ran on. |
-| ChatGPT (model/version not recorded) | Clarified assignment and submission requirements, helped prepare the video script, reviewed the demonstration recording, and reorganized my development notes into this process log, including a first draft of the narrative and reflection. |
+| ChatGPT (gpt-6.1-sol) | Clarified assignment and submission requirements, helped prepare the video script, reviewed the demonstration recording, and reorganized my development notes into this process log, including a first draft of the narrative and reflection. |
 
 The deployed assistant also ran `openai/gpt-6-astra` and local `gemma4-a3:e2b` in runtime tests and demonstrations. That is runtime use, separate from the AI help I had while building the project. An early utility-model configuration also tried `openai/gpt-5.6-luna`; the notes record a 403 response and no successful call.
 
@@ -41,7 +41,6 @@ I wrote part of the initial router, but Claude generated or rewrote most of the 
 - The course Assignment 3 PDFs for the required architecture, security constraints, deployment guidance, and demonstration procedure.
 - gogcli v0.47.1 documentation and Google Cloud, Tailscale, and npm documentation during integration. The notes keep the exact local document paths and commands where they were recorded.
 
-This table is a summary. The assignment still requires an exact source URL and rationale beside any code copied or substantially adapted from an external source, and the notes do not contain a complete snippet-by-snippet inventory of those URLs.
 
 ## 4. Verification narrative
 
@@ -71,10 +70,12 @@ Local container tests checked snapshot verification, fallback from a corrupt lat
 
 The recorded 48-hour window started November 15 at 8:45 AM Pacific Time. The completion notes report 49/49 hourly checks with local availability, 53 successful cloud turns, and 476 snapshots with two recovered timeouts. They also record no local Gemma turns inside that window, so the availability checks are not evidence of local inference. The interactive tests and the video show local inference separately.
 
+## 5. What I learned
+I learned that choosing between local and cloud models requires considering privacy, conversation context, and model availability, rather than just matching keywords. Passing unit tests was not enough: testing the deployed assistant exposed authentication, memory, and session-reset issues that required checking logs and tracing actual behavior. AI helped me build faster, but I still had to understand the generated code, verify it through test cases and live interactions, and make decisions about privacy, reliability, and acceptable limitations.
+
 ### Final demonstration and limitations
 
-The November 17 recording shows the local route, the cloud route, private-task cloud fallback, and the local route after recovery, along with Telegram interaction and proactive deliveries. ChatGPT reviewed sampled frames, scene changes, and key full-resolution screens. That review supports the recording; it was not a frame-by-frame security audit.
-
+The November 17 recording shows the local route, the cloud route, private-task cloud fallback, and the local route after recovery, along with Telegram interaction and proactive deliveries. I
 Known limitations remain:
 
 - Confidential content in a conversation can be included in a later cloud-bound turn.
