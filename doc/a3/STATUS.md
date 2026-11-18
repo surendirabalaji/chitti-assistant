@@ -1,6 +1,8 @@
 # Status
 
-Last updated: **Tue Nov 17, 2026, ~9:15 AM PST** (48-hour run complete; deadline tonight 11:59 PM PST).
+Last updated: **Tue Nov 17, 2026, ~6:45 PM PST** (48-hour run complete; deadline tonight 11:59 PM PST).
+
+**Submission status (6:45 PM Nov 17):** done: 48-hour run + evidence, `.env.example`, PLAN boxes ticked with evidence, secret scan clean (138 files; images not scanned: check `evidence/f3.png`), cron draft-only test (agent refused, no job; code gate not exercised). **Left:** video (15-step script in REQUIREMENTS.md, laptop + Ollama + caffeinate + warm-up), README (empty), security audit, performance report, PROCESS_LOG narrative + reflection (student's words; assistant gives facts only), grader access (Tailscale grant tcp:443 + share link: ask before policy change; fresh-browser test; Brightspace comment), ZIP `firstname_lastname_a3.zip` without README-HANDOFF.md, .opencode/, opencode*.json. Not verified in the cloud: recap run-now, boot catch-up. USER.md is 4006 chars (limit 4000, tail truncated in prompts). Agent still running unchanged (image 2026-11-15b, up since Nov 15 11:05 UTC).
 
 **48-HOUR RUN COMPLETE (Tue Nov 17, 8:45 AM PST; verified 9:10 AM, `evidence/2026-11-17-48h-run-complete.txt`): no restart, 49/49 hourly checks local=up, 53/53 cloud turns ok, 2 snapshot timeouts self-recovered. No local Gemma turns inside the window (only scheduled cloud turns ran).** Started Sun Nov 15, 8:45 AM PST (16:45 UTC) on image 2026-11-15b, 1 vCPU. Planned end **Tue Nov 17, 8:45 AM PST**. **No restarts, redeploys, config edits or SSH changes on the cloud agent until then.** Keep the Mac plugged in, lid open, `caffeinate -dims` running, laptop gateway off. Warm-up passed (local 41 s cold, cloud 17 s, memory 80 s); overnight snapshots, hourly turns and the 7:30 briefing all ran (`evidence/2026-11-15-48h-run-start.txt`). Known: duplicate health lines (two pollers, unexplained). Next: M8 grader access + docs/README/audit, video Mon.
 
