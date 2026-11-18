@@ -1,0 +1,31 @@
+Evening overload on the cloud agent (Tue Nov 17 2026, PST; UTC in brackets)
+=========================================================================
+Read by the assistant from Cloud Logging (read-only); ps/free run by the student over SSH.
+Image agent:2026-11-15b, 1 vCPU / 4 GiB, up since Nov 15 11:05 UTC (no restart).
+
+Snapshot durations (a3-ops snapshot.durationMs):
+- until 6:35 PM [02:35]: ~10 s each (spikes 45-74 s)
+- 6:43 PM [02:43] 158 s; 7:00-7:30 PM [03:00-03:30] 101-153 s + 2 timeouts
+- 7:38, 7:42, 7:46, 7:54 PM [03:38-03:54]: all timeout (170 s limit)
+Briefing run-now (student, `openclaw automations run <a3-briefing> --wait`):
+- 7:39 PM [03:39:34] tool-task cloud ok, 112.7 s, prep stages 39.4 s; Telegram text:
+  every section "(unavailable)", "Data retrieval timed out; a retry also failed."
+- 7:52 PM [03:52:18] prep stages 60.2 s; no route_result line seen by 03:56:41.
+- During the 7:39 run: cron.runs poll replies took 9-32 s; slow SQLite transactions 1.0-4.1 s.
+- Per-tool exec/web_fetch results are not in the gateway log (also absent for the good 7:30 AM run),
+  so the failing step is not proven.
+Same evening, working: cloud fallback with Ollama off [03:27:51] privacy-local-unavailable cloud ok 9.5 s;
+  after Ollama back [03:30:13] privacy-sensitive local ok 23.3 s (first cloud test of the fallback policy).
+  Telegram turn [03:44:47] simple-task ok=false 25.5 s (log: reply_operation_aborted; cause not confirmed).
+ps/free (student, ~03:55): one openclaw-gateway, RSS ~2.0 GB (51.8%), no leftover backup processes,
+  available 1045 MB, no swap.
+Most likely cause (not proven): CPU starvation on 1 vCPU; slow backups retried while timing out, plus
+  dashboard polling and interactive turns; gateway memory growth after 2.7 days may add GC load.
+Recovery (no restart; dashboard tab closed, no --wait polling): router route_result 7:55 PM [03:56:00]
+  tool-task ok 29.4 s; recap run-now 8:01 PM [04:01:53 -> 04:02:26] ok 32.8 s; briefing run-now 8:03 PM [04:03:06].
+  Telegram (student-pasted text): recap filled ("34 requests answered (local Gemma 5, cloud ChatGPT 29); held 0,
+  unavailable 0, failed 1"; 26 scheduled job turns; 2 meeting alerts sent; laptop checks 13 up, 8 down; meetings
+  a3-demo-sync, a3-demo-sync-2; no drafts); briefing filled (2 events 7:40/7:45 PM, focus 9:00 AM-6:00 PM,
+  LA 65°F, inbox clear). => RECAP RUN-NOW VERIFIED IN THE CLOUD (first time). Evening empty briefing = transient overload.
+Decision (student, ~8:05 PM): no restart. Video steps 13/15 show the real scheduled briefing (Nov 17 7:30 AM)
+  and recap (Nov 16 6 PM) from Telegram + their router lines; say the evening run-now came back empty.

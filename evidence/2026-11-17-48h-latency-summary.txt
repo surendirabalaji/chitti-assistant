@@ -1,0 +1,27 @@
+48-hour run: turn latency summary (route_result latencyMs)
+=========================================================
+Read by the assistant on Tue Nov 17 2026 ~6:50 PM PST, read-only:
+  gcloud logging read 'jsonPayload.component="a3-router" AND jsonPayload.kind="route_result"
+    AND timestamp>="2026-11-15T16:45:00Z" AND timestamp<="2026-11-17T16:45:00Z"'
+    --project=chitti-assistant-a3 --order=asc --limit=200
+    --format="value(timestamp,jsonPayload.rule,jsonPayload.target,jsonPayload.ok,jsonPayload.latencyMs)"
+53 lines, all target=cloud, servedModel openai/gpt-6-astra, ok=true. Instance: 1 vCPU / 4 GiB.
+latencyMs = router-measured time from the decision to the end of the agent run (includes OpenClaw
+context assembly + tool calls on 1 vCPU, not only the model call).
+
+Hourly cloud evidence turn ("[a3-cron] ... Reply with exactly: OK", tools off, light context)
+  n=48  min 6.3 s  median 32.5 s  mean 27.6 s  p90 44.0 s  max 46.1 s
+Morning briefing (tools: gog calendar + gmail, focus-finder, weather)
+  Nov 16 15:30 UTC 15.6 s ; Nov 17 15:30 UTC 29.9 s
+Evening recap (tools: gog, a3-activity)
+  Nov 16 02:01 UTC 69.3 s ; Nov 17 02:01 UTC 69.4 s
+Warm-up memory question (memory-task, memory_search), finished 16:45:31 UTC Nov 15: 79.9 s
+
+Not in the window (from earlier evidence files, for comparison):
+  local Gemma warm-up 41.4 s cold load (2026-11-15-48h-run-start.txt)
+  local Gemma warm turn ~6 s, Gemma call 5.0 s (2026-11-13-m2-forwarder-cloud.txt)
+  cloud reasoning turn 17.0 s (2026-11-15-48h-run-start.txt)
+
+After the window (seen while reading, not part of the run): Nov 18 02:38 UTC (Nov 17 6:38 PM PST) a
+chat turn tool-task cloud took 151.7 s; router health flapped up/down Nov 18 01:42-02:38 UTC (laptop sleeping:
+caffeinate not running at that time, not confirmed).

@@ -246,3 +246,12 @@ _To be written by the student._
 
 ### 2026-11-17 morning: 48-hour run complete
 - The assistant checked read-only (Cloud Logging, instance describe, bucket) at 9:10 AM PST: no restart since Nov 15 11:05 UTC (uptime 53.9 h), one container, 49/49 hourly checks with the laptop up, 53 cloud turns all ok (hourly evidence turns, 2 briefings, 2 recaps, warm-up), 476 snapshots with 2 self-recovered timeouts. No local Gemma turns inside the window. Evidence `evidence/2026-11-17-48h-run-complete.txt`, checkpoint `evidence/2026-11-15-48h-run-checkpoint-14h.txt`.
+
+### 2026-11-17 evening: video runbook and writing facts sheet
+- Tools: OpenCode with Claude Opus 5.5 (OpenRouter). The assistant read Cloud Logging read-only (boot line, router lines, route_result latencies for the 48 h window) and reran the unit tests (router 253, jobs + send-email + focus-finder 80, all pass).
+- AI-generated (documentation only, no code): `doc/a3/VIDEO_RUNBOOK.md` (exact commands/messages for the 15 video steps), `doc/a3/WRITING_FACTS.md` (facts + evidence file names for the student's README, audit, performance report and narrative; the student writes the text), `evidence/2026-11-17-48h-latency-summary.txt` (computed from Cloud Logging).
+- Observed: router health flapped up/down 01:42–02:38 UTC Nov 18 (laptop sleeping, not confirmed); one chat turn at 02:38 UTC took 151.7 s.
+
+### 2026-11-17 night: video, evening overload, README / audit / performance report
+- Student recorded the video (~8:35 PM PST). Before that, a rehearsal verified the private-task cloud fallback on the deployed agent; a briefing run-now came back empty under CPU overload, the student chose not to restart, and the load cleared once the dashboard was closed (recap run-now then verified in the cloud). One Telegram send failed with a network error and was delivered by a rerun. Evidence `evidence/2026-11-17-evening-overload.txt` (logs read by the assistant; ps/free and Telegram text from the student).
+- **AI-generated at the student's request ("Write the readme.md security audit and performance report"; OpenCode, Claude Opus 5.5):** `README.md`, `SECURITY_AUDIT.md`, `PERFORMANCE_REPORT.md`, written from STATUS.md, `doc/a3/WRITING_FACTS.md` and the evidence files; every number cites an evidence file. The student reviews and edits them. The narrative and learning reflection below remain the student's own.
