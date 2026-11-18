@@ -71,7 +71,7 @@ Code done + local container test Nov 14 (`evidence/2026-11-14-m6-jobs-local.txt`
 - [x] Alerts every 5 min for events 15–30 min ahead; dedupe by event id across restarts (local: scheduled slot fired, error path ok) — cloud: seeded meeting → `alert-sent`, dedupe, also across a restart (`evidence/2026-11-15-m6-m7-cloud-deploy.txt`)
 - [x] Hourly evidence job (cloud request + health line) (`a3-hourly-cloud` at :05, `a3-hourly-health` at :00) — cloud: 49/49 health + 48 cloud turns in the 48-hour window
 - [ ] Run-now works for briefing and recap; (briefing run-now verified in the cloud; recap run-now and boot catch-up NOT verified in the cloud) missed-job catch-up (briefing before noon, recap before 22:00; `skipMissedJobs: true` + `catchup.mjs` at boot)
-- [ ] Cron draft-only test (from M4) (NOT done yet; planned Nov 17): one-off job asking to email → send-email denied (askFallback deny), no send
+- [x] Cron draft-only test (from M4) (Nov 17: agent refused, no job created; code-level cron denial not exercised, `evidence/2026-11-17-cron-draft-only-test.txt`): one-off job asking to email → send-email denied (askFallback deny), no send
 
 ## M7 Memory and restart (3–4 h)
 Code done + local container restart test Nov 14 (`evidence/2026-11-14-m7-snapshot-restore-local.txt`); tick after the cloud test.
