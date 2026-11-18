@@ -66,17 +66,17 @@ Tick boxes as work is **verified**, not just written. Effort ranges are estimate
 
 ## M6 Proactive jobs (3–4 h)
 Code done + local container test Nov 14 (`evidence/2026-11-14-m6-jobs-local.txt`); tick each after the cloud test.
-- [ ] Briefing 7:30 AM: events + gaps (focus-finder), weather, top unread email summaries → Telegram (`deploy/jobs/briefing.md`)
-- [ ] Recap 6:00 PM: actual activity from logs (`a3-activity`), drafts awaiting approval, tomorrow's first events (`deploy/jobs/recap.md`)
-- [ ] Alerts every 5 min for events 15–30 min ahead; dedupe by event id across restarts (local: scheduled slot fired, error path ok)
-- [ ] Hourly evidence job (cloud request + health line) (`a3-hourly-cloud` at :05, `a3-hourly-health` at :00)
-- [ ] Run-now works for briefing and recap; missed-job catch-up (briefing before noon, recap before 22:00; `skipMissedJobs: true` + `catchup.mjs` at boot)
-- [ ] Cron draft-only test (from M4): one-off job asking to email → send-email denied (askFallback deny), no send
+- [x] Briefing 7:30 AM: events + gaps (focus-finder), weather, top unread email summaries → Telegram (`deploy/jobs/briefing.md`) — cloud: run-now Nov 15 1:03 AM (`evidence/2026-11-15-14e-cloud-memory-tests.txt`); scheduled 7:30 Nov 15/16/17 ran (`evidence/2026-11-17-48h-run-complete.txt`)
+- [x] Recap 6:00 PM: actual activity from logs (`a3-activity`), drafts awaiting approval, tomorrow's first events (`deploy/jobs/recap.md`) — cloud: fired by itself Nov 14, 15, 16; Nov 15 Telegram text confirmed (`evidence/2026-11-15-48h-run-checkpoint-14h.txt`)
+- [x] Alerts every 5 min for events 15–30 min ahead; dedupe by event id across restarts (local: scheduled slot fired, error path ok) — cloud: seeded meeting → `alert-sent`, dedupe, also across a restart (`evidence/2026-11-15-m6-m7-cloud-deploy.txt`)
+- [x] Hourly evidence job (cloud request + health line) (`a3-hourly-cloud` at :05, `a3-hourly-health` at :00) — cloud: 49/49 health + 48 cloud turns in the 48-hour window
+- [ ] Run-now works for briefing and recap; (briefing run-now verified in the cloud; recap run-now and boot catch-up NOT verified in the cloud) missed-job catch-up (briefing before noon, recap before 22:00; `skipMissedJobs: true` + `catchup.mjs` at boot)
+- [ ] Cron draft-only test (from M4) (NOT done yet; planned Nov 17): one-off job asking to email → send-email denied (askFallback deny), no send
 
 ## M7 Memory and restart (3–4 h)
 Code done + local container restart test Nov 14 (`evidence/2026-11-14-m7-snapshot-restore-local.txt`); tick after the cloud test.
-- [ ] Snapshot (5 min + within 1 min of a ChatGPT login change), OpenClaw `backup create --verify` (consistent SQLite), partial-name upload then rename, keep 6, final snapshot on SIGTERM (`deploy/jobs/snapshot.mjs`, job `a3-state-snapshot`)
-- [ ] Restore before gateway start with fallback to older snapshots; `state-restored` log; block snapshots if all fail (`deploy/jobs/restore.mjs`)
+- [x] Snapshot (5 min + within 1 min of a ChatGPT login change), OpenClaw `backup create --verify` (consistent SQLite), partial-name upload then rename, keep 6, final snapshot on SIGTERM (`deploy/jobs/snapshot.mjs`, job `a3-state-snapshot`) — cloud: 476 snapshots in the 48-hour run, 2 self-recovered timeouts; final SIGTERM snapshot worked Nov 15 10:16 UTC, failed once at 11:05 UTC (8 s limit)
+- [x] Restore before gateway start with fallback to older snapshots; `state-restored` log; block snapshots if all fail (`deploy/jobs/restore.mjs`) — cloud: `state-restored` + login kept on every redeploy Nov 14–15 (`evidence/2026-11-15-15a-cloud-deploy-checks.txt`)
 - [x] Persona files (SOUL.md, USER.md, IDENTITY.md) synthetic (Nov 14, `workspace/`; student to review)
 - [x] Restart test: same Tailscale name, preference recalled in fresh chat, ChatGPT still logged in (Nov 14 cloud, two restarts: login kept, USER.md "coffee" line kept and recalled by Gemma, weakly; `evidence/2026-11-15-m6-m7-cloud-deploy.txt`). Found: session-memory hook was off in the container → fixed in the template, needs redeploy
 
@@ -86,7 +86,7 @@ Code done + local container restart test Nov 14 (`evidence/2026-11-14-m7-snapsho
 - [ ] Full video dry run under 12 minutes
 
 ## M9 Run, docs, submission
-- [ ] Overnight trial run Nov 14 → review
+- [x] Overnight trial run Nov 14 → review (Nov 14–15 night; findings fixed in images 2026-11-14c…2026-11-15b)
 - [x] 48-hour run (completed, started Sun Nov 15 8:45 AM PST, ends Tue Nov 17 8:45 AM PST); export logs every 12 h
 - [ ] README (setup, architecture, routing rules, held policy, privacy statement, rate-limit toggle, run-now)
 - [ ] Security audit (≥5 risks, mitigations, remaining risks, approval + allowlist, isolation report)
